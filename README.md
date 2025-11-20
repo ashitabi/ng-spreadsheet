@@ -1,59 +1,144 @@
-# NgSpreadsheetWorkspace
+# ng-spreadsheet Workspace
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.2.
+This is a monorepo workspace containing the ng-spreadsheet library and a demo application.
 
-## Development server
+## Projects
 
-To start a local development server, run:
+### ng-spreadsheet (Library)
 
-```bash
-ng serve
-```
+A production-ready Angular spreadsheet component library with Excel-like functionality.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+📦 **Location**: `projects/ng-spreadsheet`
+📚 **Documentation**: [Library README](projects/ng-spreadsheet/README.md)
 
-## Code scaffolding
+### Demo Application
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+A demo application showcasing the ng-spreadsheet library features.
 
-```bash
-ng generate component component-name
-```
+📦 **Location**: `projects/demo`
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Quick Start
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+### 1. Install Dependencies
 
 ```bash
-ng build
+npm install
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+### 2. Build the Library
 
 ```bash
-ng test
+npm run build ng-spreadsheet
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+### 3. Run the Demo
 
 ```bash
-ng e2e
+npm start demo
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+Then open http://localhost:4200 in your browser.
 
-## Additional Resources
+## Development Workflow
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+### Building the Library
+
+```bash
+# Build once
+npm run build ng-spreadsheet
+
+# Watch mode (rebuild on changes)
+npm run build ng-spreadsheet -- --watch
+```
+
+### Running the Demo
+
+```bash
+# Serve the demo app
+npm start demo
+
+# Or with specific port
+ng serve demo --port 4200
+```
+
+### Testing
+
+```bash
+# Run tests for the library
+ng test ng-spreadsheet
+
+# Run tests for the demo
+ng test demo
+```
+
+## Project Structure
+
+```
+ng-spreadsheet-workspace/
+├── projects/
+│   ├── ng-spreadsheet/          # Library source code
+│   │   ├── src/
+│   │   │   ├── lib/
+│   │   │   │   ├── components/
+│   │   │   │   ├── models/
+│   │   │   │   └── services/
+│   │   │   └── public-api.ts
+│   │   ├── README.md
+│   │   └── package.json
+│   └── demo/                    # Demo application
+│       ├── src/
+│       │   └── app/
+│       └── package.json
+├── dist/
+│   ├── ng-spreadsheet/          # Built library
+│   └── demo/                    # Built demo app
+├── angular.json
+├── package.json
+└── README.md
+```
+
+## Features Implemented (Phase 1)
+
+- ✅ Virtual scrolling for 10,000+ rows
+- ✅ Cell selection (single and range)
+- ✅ Cell editing (double-click or F2)
+- ✅ Keyboard navigation (arrows, Tab, Enter)
+- ✅ Row and column headers (A, B, C... and 1, 2, 3...)
+- ✅ Undo/redo (Ctrl+Z, Ctrl+Y)
+- ✅ Reactive state management with RxJS
+- ✅ TypeScript strict mode
+- ✅ Standalone Angular components
+
+## Upcoming Features
+
+- ⏳ Column/row resizing
+- ⏳ Cell styling (colors, borders, fonts)
+- ⏳ Copy/paste functionality
+- ⏳ HyperFormula integration for Excel formulas
+- ⏳ Excel import/export (.xlsx)
+- ⏳ PDF export
+- ⏳ Multiple sheet support
+- ⏳ Context menu
+- ⏳ Toolbar with formatting options
+
+## Technology Stack
+
+- **Angular 20+** - Latest Angular framework
+- **TypeScript** - Type-safe JavaScript
+- **Angular CDK** - Component Dev Kit for virtual scrolling
+- **RxJS** - Reactive state management
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+## License
+
+MIT

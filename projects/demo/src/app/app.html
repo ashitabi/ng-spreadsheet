@@ -1,0 +1,63 @@
+<div class="demo-container">
+  <header class="demo-header">
+    <h1>{{ title }}</h1>
+    <p>A production-ready Angular spreadsheet component with virtual scrolling, cell editing, and keyboard navigation.</p>
+  </header>
+
+  <div class="demo-content">
+    <div class="demo-info">
+      <h2>Features Demonstrated</h2>
+      <ul>
+        <li><strong>Virtual Scrolling:</strong> Smoothly handle 1,000 rows with Angular CDK</li>
+        <li><strong>Cell Selection:</strong> Click to select, Shift+Click for range selection</li>
+        <li><strong>Cell Editing:</strong> Double-click or press F2 to edit cells</li>
+        <li><strong>Keyboard Navigation:</strong> Arrow keys, Tab, Enter to navigate</li>
+        <li><strong>Undo/Redo:</strong> Ctrl+Z to undo, Ctrl+Y to redo</li>
+        <li><strong>Row & Column Headers:</strong> Excel-style A, B, C... and 1, 2, 3...</li>
+        <li><strong>Sample Data:</strong> Pre-populated with sales data including formulas</li>
+      </ul>
+    </div>
+
+    <div class="spreadsheet-wrapper">
+      <ngs-spreadsheet-toolbar
+        (addRowClick)="onAddRow()"
+        (deleteRowClick)="onDeleteRow()"
+        (addColumnClick)="onAddColumn()"
+        (deleteColumnClick)="onDeleteColumn()"
+        (undoClick)="onUndo()"
+        (redoClick)="onRedo()"
+      ></ngs-spreadsheet-toolbar>
+
+      <ngs-spreadsheet
+        [data]="spreadsheetData"
+        [height]="600"
+        [width]="1200"
+        (cellClick)="onCellClick($event)"
+        (cellChange)="onCellChange($event)"
+        (selectionChange)="onSelectionChange($event)"
+      ></ngs-spreadsheet>
+    </div>
+
+    <div class="demo-instructions">
+      <h3>Try These Actions:</h3>
+      <ul>
+        <li>Click on any cell to select it</li>
+        <li>Double-click or press F2 to edit a cell</li>
+        <li>Use arrow keys to navigate between cells</li>
+        <li>Press Tab to move to the next cell, Enter to move down</li>
+        <li>Press Delete or Backspace to clear a cell</li>
+        <li>Hold Shift and click another cell to select a range</li>
+        <li><strong>NEW:</strong> Use the toolbar buttons to add/delete rows and columns</li>
+        <li><strong>NEW:</strong> Click "Add Row" to append a new row at the end</li>
+        <li><strong>NEW:</strong> Select a cell and click "Delete Row" to remove that row</li>
+        <li><strong>NEW:</strong> Click "Add Column" to append a new column (like column AA)</li>
+        <li>Edit a cell and press Ctrl+Z to undo the change</li>
+        <li>Scroll down to see virtual scrolling in action (1000 rows!)</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer class="demo-footer">
+    <p>Built with Angular {{ '20' }} + Angular CDK + TypeScript</p>
+  </footer>
+</div>

@@ -1,0 +1,182 @@
+<div class="excel-spreadsheet" [style.height.px]="height" [style.width.px]="width" tabindex="0">
+  <!-- Formula Bar -->
+  <div class="formula-bar">
+    <div class="cell-name">{{ getSelectedCellName() }}</div>
+    <input
+      #formulaInput
+      type="text"
+      class="formula-input"
+      [value]="getFormulaBarValue()"
+      (input)="onFormulaBarInput($event)"
+      (keydown)="onFormulaBarKeyDown($event)"
+      (focus)="onFormulaBarFocus()"
+    />
+  </div>
+
+  <!-- Spreadsheet Grid -->
+  <div class="spreadsheet-grid">
+    <!-- Corner Cell -->
+    <div class="corner-cell"></div>
+
+    <!-- Column Headers -->
+    <div #columnHeadersContainer class="column-headers-container" (scroll)="onColumnHeadersScroll($event)">
+      <div class="column-headers" [style.width.px]="getTotalWidth()">
+        <div
+          *ngFor="let col of getColumns(); trackBy: trackByCol"
+          class="column-header"
+          [style.width.px]="getColumnWidth(col)"
+          [style.left.px]="getColumnLeft(col)"
+        >
+          <span>{{ getColumnLabel(col) }}</span>
+          <div
+            class="column-resizer"
+            (mousedown)="onColumnResizerMouseDown($event, col)"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row Headers -->
+    <div class="row-headers-container">
+      <cdk-virtual-scroll-viewport
+        #rowHeadersViewport
+        [itemSize]="ROW_HEIGHT"
+        [style.height.px]="height - FORMULA_BAR_HEIGHT - HEADER_HEIGHT"
+        class="row-headers-viewport"
+      >
+        <div
+          *cdkVirtualFor="let row of getRows(); trackBy: trackByRow"
+          class="row-header"
+          [style.height.px]="ROW_HEIGHT"
+        >
+          <span>{{ getRowLabel(row) }}</span>
+          <div
+            class="row-resizer"
+            (mousedown)="onRowResizerMouseDown($event, row)"
+          ></div>
+        </div>
+      </cdk-virtual-scroll-viewport>
+    </div>
+
+    <!-- Cells -->
+    <div class="cells-container">
+      <cdk-virtual-scroll-viewport
+        #cellsViewport
+        [itemSize]="ROW_HEIGHT"
+        [style.height.px]="height - FORMULA_BAR_HEIGHT - HEADER_HEIGHT"
+        [style.width.px]="width - ROW_HEADER_WIDTH"
+        class="cells-viewport"
+        (scroll)="onCellsScroll($event)"
+      >
+        <div
+          *cdkVirtualFor="let row of getRows(); trackBy: trackByRow"
+          class="spreadsheet-row"
+          [style.height.px]="ROW_HEIGHT"
+          [style.width.px]="getTotalWidth()"
+        >
+          <div
+            *ngFor="let col of getColumns(); trackBy: trackByCol"
+            class="spreadsheet-cell"
+            [class.selected]="isCellSelected(row, col)"
+            [class.editing]="isCellEditing(row, col)"
+            [class.in-range]="isCellInRange(row, col)"
+            [style.width.px]="getColumnWidth(col)"
+            [style.height.px]="ROW_HEIGHT"
+            [style.left.px]="getColumnLeft(col)"
+            (mousedown)="onCellMouseDown($event, row, col)"
+            (mousemove)="onCellMouseMove($event, row, col)"
+            (dblclick)="onCellDoubleClick($event, row, col)"
+            (contextmenu)="onCellContextMenu($event, row, col)"
+          >
+            <div *ngIf="!isCellEditing(row, col)" class="cell-content">
+              {{ getCellDisplay(row, col) }}
+            </div>
+
+            <input
+              *ngIf="isCellEditing(row, col)"
+              #cellInput
+              type="text"
+              class="cell-input"
+              [value]="editingValue"
+              (input)="onEditingInput($event)"
+              (keydown)="onEditingKeyDown($event)"
+              (blur)="onEditingBlur()"
+            />
+
+            <!-- Auto-fill handle -->
+            <div
+              *ngIf="isCellSelected(row, col) && !editingCell"
+              class="fill-handle"
+              (mousedown)="onFillHandleMouseDown($event, row, col)"
+            ></div>
+          </div>
+        </div>
+      </cdk-virtual-scroll-viewport>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div
+    *ngIf="contextMenuVisible"
+    class="context-menu"
+    [style.left.px]="contextMenuX"
+    [style.top.px]="contextMenuY"
+  >
+    <div class="context-menu-item" (click)="onContextMenuCut()">
+      <span>Cut</span>
+      <span class="shortcut">Ctrl+X</span>
+    </div>
+    <div class="context-menu-item" (click)="onContextMenuCopy()">
+      <span>Copy</span>
+      <span class="shortcut">Ctrl+C</span>
+    </div>
+    <div class="context-menu-item" (click)="onContextMenuPaste()">
+      <span>Paste</span>
+      <span class="shortcut">Ctrl+V</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" (click)="onContextMenuInsertRow()">
+      <span>Insert Row</span>
+    </div>
+    <div class="context-menu-item" (click)="onContextMenuDeleteRow()">
+      <span>Delete Row</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" (click)="onContextMenuInsertColumn()">
+      <span>Insert Column</span>
+    </div>
+    <div class="context-menu-item" (click)="onContextMenuDeleteColumn()">
+      <span>Delete Column</span>
+    </div>
+  </div>
+
+  <!-- Formula Autocomplete -->
+  <div
+    *ngIf="showAutocomplete"
+    class="formula-autocomplete"
+    [style.left.px]="autocompleteX"
+    [style.top.px]="autocompleteY"
+  >
+    <div
+      *ngFor="let formula of autocompleteFormulas; let i = index"
+      class="autocomplete-item"
+      [class.selected]="i === selectedAutocompleteIndex"
+      (click)="onAutocompleteClick(i)"
+      (mouseenter)="selectedAutocompleteIndex = i"
+    >
+      <div class="formula-name">{{ formula.name }}</div>
+      <div class="formula-description">{{ formula.description }}</div>
+    </div>
+  </div>
+
+  <!-- Parameter Hint -->
+  <div
+    *ngIf="showParameterHint && parameterHintFormula"
+    class="parameter-hint"
+    [style.left.px]="parameterHintX"
+    [style.top.px]="parameterHintY"
+  >
+    <span class="hint-name">{{ parameterHintFormula.name }}</span>
+    <span class="hint-syntax">{{ parameterHintFormula.syntax }}</span>
+  </div>
+</div>
