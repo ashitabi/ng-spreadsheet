@@ -156,3 +156,109 @@ When testing, remember:
 3. **Missing formula recalculation**: When adding cell update features, ensure formulas recalculate
 4. **Scroll sync issues**: When modifying viewports, verify all 3 scroll together correctly
 5. **Mouse state conflicts**: Only one mouse operation (drag/fill/resize) should be active at once
+
+## Implemented Features
+
+### Core Spreadsheet Functionality
+- **Virtual Scrolling**: Smooth handling of 10,000+ rows using Angular CDK Virtual Scroll
+- **Cell Selection**: Single cell and range selection with mouse drag and Shift+click
+- **Cell Editing**: Double-click or F2 to edit, inline editing with formula bar support
+- **Keyboard Navigation**: Arrow keys, Tab, Enter, Shift+Tab for navigation
+- **Row/Column Headers**: Interactive headers (A, B, C... and 1, 2, 3...)
+- **Column Resizing**: Drag column borders to resize with mouse
+- **Row Resizing**: Drag row borders to resize with mouse
+- **Context Menu**: Right-click menu with Cut, Copy, Paste, Delete, Insert/Delete Row/Column
+- **Fill Handle**: Excel-like green square for drag-to-fill functionality
+- **Undo/Redo**: Full history tracking with Ctrl+Z and Ctrl+Y (up to 100 actions)
+
+### Formula Engine (23 Functions)
+**Mathematical Functions:**
+- SUM, AVERAGE, COUNT, MIN, MAX, PRODUCT
+
+**Statistical Functions:**
+- COUNTA, COUNTBLANK, MEDIAN, MODE, STDEV, VAR, CORREL, PERCENTILE, QUARTILE, RANK
+
+**Logical Functions:**
+- IF, IFS, IFERROR, IFNA, AND, OR, NOT
+
+**Formula Features:**
+- Cell references (A1, B2) and ranges (A1:B10)
+- Formula autocomplete with function suggestions
+- Parameter hints showing function syntax
+- Automatic recalculation when dependencies change
+- Circular reference detection
+
+### Excel Ribbon
+**Font Formatting:**
+- Font family selection (Arial, Calibri, Times New Roman, etc.)
+- Font size (10-24px)
+- Bold, Italic, Underline
+- Text color and background color pickers
+
+**Number Formatting:**
+- General, Number, Currency, Accounting, Percentage, Date, Time
+- Increase/decrease decimal places
+
+**Alignment:**
+- Horizontal alignment (Left, Center, Right)
+- Word wrap toggle
+
+**Data Operations:**
+- Sort ascending/descending
+- Filter toggle
+- Search/Find functionality
+
+### State Management
+- **RxJS-based reactive state**: All state flows through BehaviorSubject observables
+- **Immutable updates**: Spread operators ensure change detection works correctly
+- **TypeScript strict mode**: Full type safety across the codebase
+- **Service-based architecture**: Centralized state management via SpreadsheetDataService
+- **OnPush change detection**: Optimized performance with ChangeDetectionStrategy.OnPush
+
+### Copy/Paste
+- Ctrl+C / Cmd+C to copy selected cells
+- Ctrl+V / Cmd+V to paste
+- TSV (Tab-Separated Values) clipboard format
+- Range copying and pasting support
+
+## Upcoming Features
+
+### Phase 1: Advanced Formatting
+- Merge & Center cells
+- Cell borders (all, outline, top, bottom, left, right)
+- Vertical alignment (top, middle, bottom)
+- Format Painter
+- Paste Special (values, formats, formulas)
+- Clear options (all, contents, formats)
+- AutoFit column width
+
+### Phase 2: Data Features
+- Freeze panes (freeze rows/columns)
+- Filter functionality
+- Data validation
+- Conditional formatting
+- Cell comments/notes
+
+### Phase 3: Import/Export
+- Excel (.xlsx) import/export
+- CSV import/export
+- PDF export
+- Print functionality
+
+### Phase 4: Multiple Sheets
+- Sheet tabs
+- Add/delete/rename sheets
+- Cross-sheet formula references
+- Sheet protection
+
+### Phase 5: Advanced Formulas
+- Date/Time functions (NOW, TODAY, DATE, DATEVALUE, etc.)
+- Text functions (CONCATENATE, LEFT, RIGHT, MID, LEN, TRIM, etc.)
+- Lookup functions (VLOOKUP, HLOOKUP, INDEX, MATCH, etc.)
+- Financial functions (NPV, IRR, PMT, FV, PV, etc.)
+
+### Phase 6: Collaboration
+- Real-time collaboration
+- Change tracking
+- Cell locking
+- Version history

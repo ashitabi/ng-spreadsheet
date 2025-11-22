@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
-import { SpreadsheetComponent, SpreadsheetData, SpreadsheetToolbarComponent, SpreadsheetDataService } from 'ng-spreadsheet';
+import { SpreadsheetComponent, SpreadsheetData, SpreadsheetDataService } from 'ng-spreadsheet';
 
 @Component({
   selector: 'app-root',
-  imports: [SpreadsheetComponent, SpreadsheetToolbarComponent],
+  imports: [SpreadsheetComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -153,59 +153,5 @@ export class App {
    */
   onSelectionChange(address: any): void {
     console.log('Selection changed:', address);
-  }
-
-  /**
-   * Adds a new row at the end
-   */
-  onAddRow(): void {
-    this.dataService.addRow();
-    console.log('Row added');
-  }
-
-  /**
-   * Deletes the currently selected row
-   */
-  onDeleteRow(): void {
-    const selected = this.dataService.getSelectedCell();
-    if (selected) {
-      this.dataService.deleteRow(selected.row);
-      console.log('Row deleted:', selected.row);
-    }
-  }
-
-  /**
-   * Adds a new column at the end
-   */
-  onAddColumn(): void {
-    this.dataService.addColumn();
-    console.log('Column added');
-  }
-
-  /**
-   * Deletes the currently selected column
-   */
-  onDeleteColumn(): void {
-    const selected = this.dataService.getSelectedCell();
-    if (selected) {
-      this.dataService.deleteColumn(selected.col);
-      console.log('Column deleted:', selected.col);
-    }
-  }
-
-  /**
-   * Undoes the last action
-   */
-  onUndo(): void {
-    this.dataService.undo();
-    console.log('Undo');
-  }
-
-  /**
-   * Redoes the last undone action
-   */
-  onRedo(): void {
-    this.dataService.redo();
-    console.log('Redo');
   }
 }

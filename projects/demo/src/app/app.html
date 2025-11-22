@@ -19,15 +19,6 @@
     </div>
 
     <div class="spreadsheet-wrapper">
-      <ngs-spreadsheet-toolbar
-        (addRowClick)="onAddRow()"
-        (deleteRowClick)="onDeleteRow()"
-        (addColumnClick)="onAddColumn()"
-        (deleteColumnClick)="onDeleteColumn()"
-        (undoClick)="onUndo()"
-        (redoClick)="onRedo()"
-      ></ngs-spreadsheet-toolbar>
-
       <ngs-spreadsheet
         [data]="spreadsheetData"
         [height]="600"
@@ -47,10 +38,9 @@
         <li>Press Tab to move to the next cell, Enter to move down</li>
         <li>Press Delete or Backspace to clear a cell</li>
         <li>Hold Shift and click another cell to select a range</li>
-        <li><strong>NEW:</strong> Use the toolbar buttons to add/delete rows and columns</li>
-        <li><strong>NEW:</strong> Click "Add Row" to append a new row at the end</li>
-        <li><strong>NEW:</strong> Select a cell and click "Delete Row" to remove that row</li>
-        <li><strong>NEW:</strong> Click "Add Column" to append a new column (like column AA)</li>
+        <li>Right-click on cells to access context menu (cut, copy, paste, insert/delete rows and columns)</li>
+        <li>Right-click on column headers to insert/delete columns or auto-fit width</li>
+        <li>Use the Excel-like ribbon to format cells (font, colors, alignment, borders, etc.)</li>
         <li>Edit a cell and press Ctrl+Z to undo the change</li>
         <li>Scroll down to see virtual scrolling in action (1000 rows!)</li>
       </ul>

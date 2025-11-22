@@ -9,6 +9,7 @@ import {
   ElementRef,
   HostListener,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
@@ -19,10 +20,13 @@ import { SpreadsheetDataService } from '../services/spreadsheet-data.service';
 import {
   Cell,
   CellAddress,
+  CellRange,
+  CellStyle,
   SpreadsheetData,
   Sheet,
   colIndexToLetter,
 } from '../models';
+import { SpreadsheetRibbonComponent, RibbonAction } from './spreadsheet-ribbon.component';
 
 /**
  * Main spreadsheet component that displays an Excel-like grid with virtual scrolling.
@@ -42,7 +46,7 @@ import {
 @Component({
   selector: 'ngs-spreadsheet',
   standalone: true,
-  imports: [CommonModule, ScrollingModule],
+  imports: [CommonModule, ScrollingModule, SpreadsheetRibbonComponent],
   templateUrl: './spreadsheet.component.html',
   styleUrls: ['./spreadsheet.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -115,12 +119,24 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   readonly ROW_HEIGHT = 25;
   readonly HEADER_HEIGHT = 25;
   readonly FORMULA_BAR_HEIGHT = 28;
+  readonly RIBBON_HEIGHT = 60;
   readonly ROW_HEADER_WIDTH = 50;
 
   // Context menu state
   contextMenuVisible = false;
   contextMenuX = 0;
   contextMenuY = 0;
+  showPasteSpecialMenu = false;
+
+  // Column header context menu state
+  columnContextMenuVisible = false;
+  columnContextMenuX = 0;
+  columnContextMenuY = 0;
+  contextMenuColumnIndex = -1;
+
+  // Format painter state
+  formatPainterActive = false;
+  copiedCellStyle: Partial<CellStyle> | null = null;
 
   // Column resizing state
   isResizingColumn = false;
@@ -183,7 +199,10 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(public dataService: SpreadsheetDataService) {}
+  constructor(
+    public dataService: SpreadsheetDataService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     // Load initial data if provided
@@ -196,6 +215,7 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((sheet) => {
         this.activeSheet = sheet;
+        this.cdr.markForCheck();
       });
 
     // Subscribe to selected cell changes
@@ -204,6 +224,7 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
       .subscribe((cell) => {
         this.selectedCell = cell;
         this.selectionChange.emit(cell);
+        this.cdr.markForCheck();
       });
 
     // Subscribe to editing cell changes
@@ -216,19 +237,24 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
         if (cell) {
           setTimeout(() => this.cellInput?.nativeElement.focus(), 0);
         }
+        this.cdr.markForCheck();
       });
 
     // Subscribe to range selection changes
     this.dataService.selectedRange$
       .pipe(takeUntil(this.destroy$))
       .subscribe((range) => {
-        if (range) {
-          this.rangeStart = range.start;
-          this.rangeEnd = range.end;
-        } else {
-          this.rangeStart = null;
-          this.rangeEnd = null;
+        // Don't overwrite rangeStart/rangeEnd if we're in the middle of a drag
+        if (!this.isDragging) {
+          if (range) {
+            this.rangeStart = range.start;
+            this.rangeEnd = range.end;
+          } else {
+            this.rangeStart = null;
+            this.rangeEnd = null;
+          }
         }
+        this.cdr.markForCheck();
       });
   }
 
@@ -247,36 +273,42 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const selected = this.selectedCell;
-    if (!selected || !this.activeSheet) return;
+    if (!this.activeSheet) return;
 
+    const selected = this.selectedCell;
     let handled = true;
 
     switch (event.key) {
       case 'ArrowUp':
+        if (!selected) { handled = false; break; }
         this.moveSelection(selected.row - 1, selected.col);
         break;
 
       case 'ArrowDown':
       case 'Enter':
+        if (!selected) { handled = false; break; }
         this.moveSelection(selected.row + 1, selected.col);
         break;
 
       case 'ArrowLeft':
+        if (!selected) { handled = false; break; }
         this.moveSelection(selected.row, selected.col - 1);
         break;
 
       case 'ArrowRight':
       case 'Tab':
+        if (!selected) { handled = false; break; }
         this.moveSelection(selected.row, selected.col + 1);
         break;
 
       case 'F2':
+        if (!selected) { handled = false; break; }
         this.startEditing(selected);
         break;
 
       case 'Delete':
       case 'Backspace':
+        if (!selected) { handled = false; break; }
         if (!this.readonly) {
           this.dataService.updateCell(selected.row, selected.col, '');
         }
@@ -364,12 +396,32 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
         end: this.rangeEnd,
       });
     } else {
-      // Start new selection
-      this.isDragging = true;
-      this.rangeStart = address;
-      this.rangeEnd = address;
-      this.dataService.selectCell(address);
-      this.cellClick.emit(address);
+      // Check if clicking inside an existing range
+      const existingRange = this.dataService.getSelectedRange();
+      let clickedInsideRange = false;
+
+      if (existingRange) {
+        const minRow = Math.min(existingRange.start.row, existingRange.end.row);
+        const maxRow = Math.max(existingRange.start.row, existingRange.end.row);
+        const minCol = Math.min(existingRange.start.col, existingRange.end.col);
+        const maxCol = Math.max(existingRange.start.col, existingRange.end.col);
+        clickedInsideRange = row >= minRow && row <= maxRow && col >= minCol && col <= maxCol;
+      }
+
+      if (clickedInsideRange) {
+        // Clicking inside existing range - don't clear it, just prepare for potential drag
+        this.isDragging = true;
+        this.rangeStart = existingRange!.start;
+        this.rangeEnd = existingRange!.end;
+        // Don't call selectCell() to avoid clearing the range
+      } else {
+        // Start new selection
+        this.isDragging = true;
+        this.rangeStart = address;
+        this.rangeEnd = address;
+        this.dataService.selectCell(address);
+        this.cellClick.emit(address);
+      }
     }
   }
 
@@ -437,28 +489,102 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Handles mouse move during resize operations
+   * Handles mouse move during resize and drag operations
    */
   @HostListener('window:mousemove', ['$event'])
   onMouseMove(event: MouseEvent): void {
+    // Handle column resize
     if (this.isResizingColumn && this.resizingColumnIndex >= 0) {
       const delta = event.clientX - this.columnResizeStartX;
       const newWidth = Math.max(30, this.columnResizeStartWidth + delta);
       this.dataService.setColumnWidth(this.resizingColumnIndex, newWidth);
     }
 
+    // Handle row resize
     if (this.isResizingRow && this.resizingRowIndex >= 0) {
       const delta = event.clientY - this.rowResizeStartY;
       const newHeight = Math.max(20, this.rowResizeStartHeight + delta);
       this.dataService.setRowHeight(this.resizingRowIndex, newHeight);
     }
+
+    // Handle drag selection
+    if (this.isDragging && this.rangeStart && this.cellsViewport) {
+      event.preventDefault();
+
+      // Get the cells viewport element
+      const viewportEl = this.cellsViewport.elementRef.nativeElement;
+      const rect = viewportEl.getBoundingClientRect();
+
+      // Calculate mouse position relative to viewport
+      const mouseX = event.clientX - rect.left + viewportEl.scrollLeft;
+      const mouseY = event.clientY - rect.top + viewportEl.scrollTop;
+
+      // Find which cell the mouse is over
+      const cell = this.getCellAtPosition(mouseX, mouseY);
+
+      if (cell) {
+        this.rangeEnd = cell;
+
+        // If drag covers more than one cell, switch to range selection
+        if (this.rangeStart.row !== this.rangeEnd.row ||
+            this.rangeStart.col !== this.rangeEnd.col) {
+          this.dataService.selectRange({
+            start: this.rangeStart,
+            end: this.rangeEnd,
+          });
+        }
+      }
+    }
+
+    // Handle fill handle dragging
+    if (this.isFilling && this.fillStartRow >= 0 && this.fillStartCol >= 0) {
+      const cell = this.getCellAtPosition(event.clientX, event.clientY);
+      if (cell) {
+        this.fillEndRow = cell.row;
+        this.fillEndCol = cell.col;
+      }
+    }
   }
 
   /**
-   * Handles cell click (for compatibility)
+   * Calculates which cell is at the given pixel position
+   */
+  private getCellAtPosition(x: number, y: number): CellAddress | null {
+    if (!this.activeSheet) return null;
+
+    // Calculate row (assumes fixed row height for now)
+    const row = Math.floor(y / this.ROW_HEIGHT);
+
+    // Calculate column (needs to account for variable widths)
+    let col = 0;
+    let currentX = 0;
+
+    for (let c = 0; c < this.activeSheet.colCount; c++) {
+      const colWidth = this.getColumnWidth(c);
+      if (currentX + colWidth > x) {
+        col = c;
+        break;
+      }
+      currentX += colWidth;
+      col = c + 1; // If we go past all columns, use the last one
+    }
+
+    // Clamp to valid range
+    const clampedRow = Math.max(0, Math.min(row, this.activeSheet.rowCount - 1));
+    const clampedCol = Math.max(0, Math.min(col, this.activeSheet.colCount - 1));
+
+    return { row: clampedRow, col: clampedCol };
+  }
+
+  /**
+   * Handles cell click (for compatibility and format painter)
    */
   onCellClick(event: MouseEvent, row: number, col: number): void {
-    // Most work is done in mousedown/mouseup, this is for compatibility
+    // Handle format painter
+    if (this.formatPainterActive) {
+      this.applyFormatPainterStyle(row, col);
+    }
+    // Most work is done in mousedown/mouseup
   }
 
   /**
@@ -603,6 +729,7 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    */
   private async handleCopy(): Promise<void> {
     const data = this.dataService.copy();
+
     if (data) {
       try {
         await navigator.clipboard.writeText(data);
@@ -1053,11 +1180,12 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Hides context menu when clicking outside
+   * Hides context menus when clicking outside
    */
   @HostListener('document:click')
   onDocumentClick(): void {
     this.contextMenuVisible = false;
+    this.columnContextMenuVisible = false;
   }
 
   /**
@@ -1260,4 +1388,518 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   closeAutocomplete(): void {
     this.showAutocomplete = false;
   }
+
+  // ========== RIBBON INTEGRATION METHODS ==========
+
+  /**
+   * Gets the current selected cell's or range's style
+   */
+  getCurrentCellStyle(): Partial<CellStyle> {
+    // If single cell selected, return its style
+    if (this.selectedCell) {
+      const cell = this.dataService.getCell(this.selectedCell.row, this.selectedCell.col);
+      return cell?.style || {};
+    }
+
+    // If range selected, return style from first cell in range
+    const selectedRange = this.dataService.getSelectedRange();
+    if (selectedRange) {
+      const { start } = selectedRange;
+      const cell = this.dataService.getCell(start.row, start.col);
+      return cell?.style || {};
+    }
+
+    return {};
+  }
+
+  /**
+   * Handles ribbon actions from the ribbon component
+   */
+  onRibbonAction(action: RibbonAction): void {
+    switch (action.type) {
+      case 'font':
+      case 'format':
+      case 'alignment':
+        // Apply style to selected cell or range
+        const hasSelection = this.selectedCell || this.dataService.getSelectedRange();
+        if (hasSelection) {
+          this.applyCellStyle(action.action, action.value);
+        }
+        break;
+      case 'sort':
+        this.sortData(action.action === 'ascending');
+        break;
+      case 'filter':
+        this.toggleFilterRow();
+        break;
+      case 'search':
+        this.searchCells(action.value);
+        break;
+      case 'merge':
+        if (action.action === 'mergeAndCenter') {
+          this.mergeAndCenterCells();
+        }
+        break;
+      case 'border':
+        if (this.selectedCell) {
+          this.applyBorderStyle(action.action);
+        }
+        break;
+      case 'formatPainter':
+        this.handleFormatPainter(action.value);
+        break;
+      case 'clear':
+        this.handleClear(action.action);
+        break;
+      case 'undo':
+        this.dataService.undo();
+        break;
+      case 'redo':
+        this.dataService.redo();
+        break;
+    }
+  }
+
+  /**
+   * Applies a style property to the currently selected cell or range
+   */
+  private applyCellStyle(property: string, value: any): void {
+    const selectedRange = this.dataService.getSelectedRange();
+
+    // If there's a range selection, apply to all cells in range
+    if (selectedRange) {
+      const { start, end } = selectedRange;
+      const minRow = Math.min(start.row, end.row);
+      const maxRow = Math.max(start.row, end.row);
+      const minCol = Math.min(start.col, end.col);
+      const maxCol = Math.max(start.col, end.col);
+
+      // Apply style to each cell in the range
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const cell = this.dataService.getCell(row, col);
+          if (cell) {
+            const currentStyle = cell.style || {};
+            const newStyle = {
+              ...currentStyle,
+              [property]: value
+            };
+            this.dataService.updateCellStyle(row, col, newStyle);
+          }
+        }
+      }
+    }
+    // Otherwise, apply to single selected cell
+    else if (this.selectedCell) {
+      const currentStyle = this.getCurrentCellStyle();
+      const newStyle = {
+        ...currentStyle,
+        [property]: value
+      };
+      this.dataService.updateCellStyle(this.selectedCell.row, this.selectedCell.col, newStyle);
+    }
+  }
+
+  /**
+   * Sorts data based on the selected column
+   */
+  private sortData(ascending: boolean): void {
+    if (!this.selectedCell) return;
+
+    const col = this.selectedCell.col;
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet) return;
+
+    // Get all rows (excluding header if first row)
+    const dataRows = sheet.cells.slice(1);
+
+    // Sort rows based on the selected column
+    dataRows.sort((a, b) => {
+      const aVal = a[col]?.displayValue || a[col]?.value || '';
+      const bVal = b[col]?.displayValue || b[col]?.value || '';
+
+      // Try to compare as numbers first
+      const aNum = parseFloat(String(aVal));
+      const bNum = parseFloat(String(bVal));
+
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return ascending ? aNum - bNum : bNum - aNum;
+      }
+
+      // Compare as strings
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+
+      if (ascending) {
+        return aStr < bStr ? -1 : aStr > bStr ? 1 : 0;
+      } else {
+        return aStr > bStr ? -1 : aStr < bStr ? 1 : 0;
+      }
+    });
+
+    // Reconstruct sheet with sorted data
+    const newCells = [sheet.cells[0], ...dataRows];
+    this.dataService.updateSheetCells(newCells);
+  }
+
+  /**
+   * Toggles the filter row visibility (placeholder for now)
+   */
+  private toggleFilterRow(): void {
+    // TODO: Implement filter functionality
+  }
+
+  /**
+   * Searches for cells containing the specified text
+   */
+  private searchCells(searchText: string): void {
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet || !searchText) return;
+
+    const lowerSearch = searchText.toLowerCase();
+
+    // Find all cells matching the search
+    for (let row = 0; row < sheet.cells.length; row++) {
+      for (let col = 0; col < sheet.cells[row].length; col++) {
+        const cell = sheet.cells[row][col];
+        const cellText = String(cell.displayValue || cell.value || '').toLowerCase();
+
+        if (cellText.includes(lowerSearch)) {
+          // Select the first match
+          this.dataService.selectCell({ row, col });
+          return;
+        }
+      }
+    }
+
+    alert('No matches found');
+  }
+
+  /**
+   * Gets the computed style for a cell
+   */
+  getCellStyle(row: number, col: number): any {
+    const cell = this.dataService.getCell(row, col);
+    return cell?.style || {};
+  }
+
+  // ========== NEW FEATURE METHODS ==========
+
+  /**
+   * Merges and centers the selected range of cells
+   */
+  private mergeAndCenterCells(): void {
+    if (!this.rangeStart || !this.rangeEnd) {
+      alert('Please select a range of cells to merge');
+      return;
+    }
+
+    const minRow = Math.min(this.rangeStart.row, this.rangeEnd.row);
+    const maxRow = Math.max(this.rangeStart.row, this.rangeEnd.row);
+    const minCol = Math.min(this.rangeStart.col, this.rangeEnd.col);
+    const maxCol = Math.max(this.rangeStart.col, this.rangeEnd.col);
+
+    const rowSpan = maxRow - minRow + 1;
+    const colSpan = maxCol - minCol + 1;
+
+    // Apply merge style to the top-left cell
+    const currentStyle = this.getCurrentCellStyle();
+    const newStyle = {
+      ...currentStyle,
+      rowSpan,
+      colSpan,
+      textAlign: 'center' as const,
+    };
+
+    this.dataService.updateCellStyle(minRow, minCol, newStyle);
+  }
+
+  /**
+   * Applies border style to selected cell
+   */
+  private applyBorderStyle(type: string): void {
+    if (!this.selectedCell) return;
+
+    const currentStyle = this.getCurrentCellStyle();
+    let newStyle: Partial<CellStyle> = { ...currentStyle };
+
+    const borderValue = '1px solid #000';
+
+    switch (type) {
+      case 'all':
+        newStyle.border = borderValue;
+        break;
+      case 'outline':
+        newStyle.borderTop = borderValue;
+        newStyle.borderRight = borderValue;
+        newStyle.borderBottom = borderValue;
+        newStyle.borderLeft = borderValue;
+        break;
+      case 'top':
+        newStyle.borderTop = borderValue;
+        break;
+      case 'bottom':
+        newStyle.borderBottom = borderValue;
+        break;
+      case 'left':
+        newStyle.borderLeft = borderValue;
+        break;
+      case 'right':
+        newStyle.borderRight = borderValue;
+        break;
+      case 'none':
+        newStyle.border = 'none';
+        newStyle.borderTop = 'none';
+        newStyle.borderRight = 'none';
+        newStyle.borderBottom = 'none';
+        newStyle.borderLeft = 'none';
+        break;
+    }
+
+    this.dataService.updateCellStyle(this.selectedCell.row, this.selectedCell.col, newStyle);
+  }
+
+  /**
+   * Handles format painter toggle
+   */
+  private handleFormatPainter(active: boolean): void {
+    this.formatPainterActive = active;
+
+    if (active && this.selectedCell) {
+      // Copy the current cell's style
+      const cell = this.dataService.getCell(this.selectedCell.row, this.selectedCell.col);
+      this.copiedCellStyle = cell?.style || null;
+    } else {
+      this.copiedCellStyle = null;
+    }
+  }
+
+  /**
+   * Handles cell click when format painter is active
+   */
+  private applyFormatPainterStyle(row: number, col: number): void {
+    if (this.formatPainterActive && this.copiedCellStyle) {
+      this.dataService.updateCellStyle(row, col, this.copiedCellStyle);
+      // Deactivate format painter after one use
+      this.formatPainterActive = false;
+      this.copiedCellStyle = null;
+    }
+  }
+
+  /**
+   * Handles clear operations
+   */
+  private handleClear(action: string): void {
+    if (!this.selectedCell) return;
+
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet) return;
+
+    // Determine the range to clear
+    let minRow = this.selectedCell.row;
+    let maxRow = this.selectedCell.row;
+    let minCol = this.selectedCell.col;
+    let maxCol = this.selectedCell.col;
+
+    if (this.rangeStart && this.rangeEnd) {
+      minRow = Math.min(this.rangeStart.row, this.rangeEnd.row);
+      maxRow = Math.max(this.rangeStart.row, this.rangeEnd.row);
+      minCol = Math.min(this.rangeStart.col, this.rangeEnd.col);
+      maxCol = Math.max(this.rangeStart.col, this.rangeEnd.col);
+    }
+
+    // Clear cells in the range
+    for (let row = minRow; row <= maxRow; row++) {
+      for (let col = minCol; col <= maxCol; col++) {
+        switch (action) {
+          case 'all':
+            this.dataService.updateCell(row, col, '');
+            this.dataService.updateCellStyle(row, col, {});
+            break;
+          case 'contents':
+            this.dataService.updateCell(row, col, '');
+            break;
+          case 'formats':
+            this.dataService.updateCellStyle(row, col, {});
+            break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Handles paste special operations
+   */
+  onContextMenuPasteSpecial(type: 'values' | 'formats' | 'formulas'): void {
+    this.contextMenuVisible = false;
+    this.showPasteSpecialMenu = false;
+
+    // Get clipboard data
+    navigator.clipboard.readText().then(text => {
+      if (!text || !this.selectedCell) return;
+
+      const sheet = this.dataService.getActiveSheet();
+      if (!sheet) return;
+
+      // Parse TSV data
+      const rows = text.split('\n').filter(line => line.trim());
+      const data = rows.map(row => row.split('\t'));
+
+      // Paste starting from selected cell
+      for (let i = 0; i < data.length; i++) {
+        for (let j = 0; j < data[i].length; j++) {
+          const targetRow = this.selectedCell.row + i;
+          const targetCol = this.selectedCell.col + j;
+
+          if (targetRow < sheet.rowCount && targetCol < sheet.colCount) {
+            if (type === 'values') {
+              // Paste values only (no formulas)
+              const value = data[i][j];
+              const processedValue = value.startsWith('=') ? value.substring(1) : value;
+              this.dataService.updateCell(targetRow, targetCol, processedValue);
+            } else if (type === 'formulas') {
+              // Paste formulas only
+              this.dataService.updateCell(targetRow, targetCol, data[i][j]);
+            } else if (type === 'formats') {
+              // Paste formats only - would need to copy cell styles
+              // TODO: Implement full paste formats functionality
+            }
+          }
+        }
+      }
+    }).catch(err => {
+      console.error('Failed to read clipboard:', err);
+    });
+  }
+
+  /**
+   * Handles column header context menu
+   */
+  /**
+   * Handles column header click to select entire column
+   */
+  onColumnHeaderClick(event: MouseEvent, col: number): void {
+    // Don't select if clicking on the resizer
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('column-resizer')) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet) return;
+
+    // Select entire column (from row 0 to last row)
+    const range: CellRange = {
+      start: { row: 0, col },
+      end: { row: sheet.rowCount - 1, col }
+    };
+
+    this.dataService.selectRange(range);
+  }
+
+  /**
+   * Handles row header click to select entire row
+   */
+  onRowHeaderClick(event: MouseEvent, row: number): void {
+    // Don't select if clicking on the resizer
+    const target = event.target as HTMLElement;
+    if (target.classList.contains('row-resizer')) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet) return;
+
+    // Select entire row (from col 0 to last col)
+    const range: CellRange = {
+      start: { row, col: 0 },
+      end: { row, col: sheet.colCount - 1 }
+    };
+
+    this.dataService.selectRange(range);
+  }
+
+  onColumnHeaderContextMenu(event: MouseEvent, col: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.columnContextMenuX = event.clientX;
+    this.columnContextMenuY = event.clientY;
+    this.contextMenuColumnIndex = col;
+    this.columnContextMenuVisible = true;
+
+    // Hide cell context menu
+    this.contextMenuVisible = false;
+  }
+
+  /**
+   * Handles column resizer double-click to auto-fit
+   */
+  onColumnResizerDoubleClick(event: MouseEvent, col: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.autoFitColumn(col);
+  }
+
+  /**
+   * Auto-fits column width to content
+   */
+  private autoFitColumn(col: number): void {
+    const sheet = this.dataService.getActiveSheet();
+    if (!sheet) return;
+
+    let maxWidth = 50; // Minimum width
+
+    // Measure content width for all cells in the column
+    for (let row = 0; row < sheet.rowCount; row++) {
+      const cell = this.dataService.getCell(row, col);
+      if (cell && cell.displayValue) {
+        // Rough estimate: 8px per character + 16px padding
+        const contentWidth = cell.displayValue.length * 8 + 16;
+        maxWidth = Math.max(maxWidth, contentWidth);
+      }
+    }
+
+    // Cap at a reasonable maximum
+    maxWidth = Math.min(maxWidth, 400);
+
+    this.dataService.setColumnWidth(col, maxWidth);
+  }
+
+  /**
+   * Context menu: AutoFit column
+   */
+  onColumnContextMenuAutoFit(): void {
+    if (this.contextMenuColumnIndex >= 0) {
+      this.autoFitColumn(this.contextMenuColumnIndex);
+    }
+    this.columnContextMenuVisible = false;
+  }
+
+  /**
+   * Context menu: Insert column
+   */
+  onColumnContextMenuInsert(): void {
+    if (this.contextMenuColumnIndex >= 0) {
+      this.dataService.insertColumn(this.contextMenuColumnIndex);
+    }
+    this.columnContextMenuVisible = false;
+  }
+
+  /**
+   * Context menu: Delete column
+   */
+  onColumnContextMenuDelete(): void {
+    if (this.contextMenuColumnIndex >= 0) {
+      this.dataService.deleteColumn(this.contextMenuColumnIndex);
+    }
+    this.columnContextMenuVisible = false;
+  }
+
 }

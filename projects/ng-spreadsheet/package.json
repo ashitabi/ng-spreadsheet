@@ -12,16 +12,16 @@
     "component",
     "library"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "ng-spreadsheet contributors",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/ng-spreadsheet.git"
+    "url": "https://github.com/ashitabi/ng-spreadsheet.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/ng-spreadsheet/issues"
+    "url": "https://github.com/ashitabi/ng-spreadsheet/issues"
   },
-  "homepage": "https://github.com/yourusername/ng-spreadsheet#readme",
+  "homepage": "https://github.com/ashitabi/ng-spreadsheet#readme",
   "peerDependencies": {
     "@angular/common": "^20.0.0",
     "@angular/core": "^20.0.0",

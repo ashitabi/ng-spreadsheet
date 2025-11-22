@@ -1,144 +1,206 @@
-# ng-spreadsheet Workspace
+# ng-spreadsheet
 
-This is a monorepo workspace containing the ng-spreadsheet library and a demo application.
+<div align="center">
 
-## Projects
+![ng-spreadsheet](https://img.shields.io/npm/v/ng-spreadsheet?style=flat-square)
+![Angular](https://img.shields.io/badge/Angular-20+-red?style=flat-square&logo=angular)
+![License](https://img.shields.io/github/license/ashitabi/ng-spreadsheet?style=flat-square)
+![Build](https://img.shields.io/github/actions/workflow/status/ashitabi/ng-spreadsheet/build.yml?style=flat-square)
 
-### ng-spreadsheet (Library)
+**A production-ready Angular spreadsheet component with Excel-like functionality**
 
-A production-ready Angular spreadsheet component library with Excel-like functionality.
+[Features](#features) • [Installation](#installation) • [Demo](#demo) • [Documentation](#documentation) • [Contributing](#contributing)
 
-📦 **Location**: `projects/ng-spreadsheet`
-📚 **Documentation**: [Library README](projects/ng-spreadsheet/README.md)
+</div>
 
-### Demo Application
+---
 
-A demo application showcasing the ng-spreadsheet library features.
+## 🚀 Features
 
-📦 **Location**: `projects/demo`
+### Core Spreadsheet Functionality
+- ✅ **Virtual Scrolling** - Smoothly handle 10,000+ rows with Angular CDK
+- ✅ **Cell Selection** - Single cell and range selection with mouse drag and Shift+click
+- ✅ **Cell Editing** - Double-click or F2 to edit, inline editing with formula bar
+- ✅ **Keyboard Navigation** - Arrow keys, Tab, Enter, Shift+Tab for navigation
+- ✅ **Row/Column Headers** - Interactive Excel-style headers (A, B, C... and 1, 2, 3...)
+- ✅ **Column/Row Resizing** - Drag borders to resize with mouse
+- ✅ **Context Menu** - Right-click menu with Cut, Copy, Paste, Delete, Insert/Delete operations
+- ✅ **Fill Handle** - Excel-like drag-to-fill functionality
+- ✅ **Undo/Redo** - Full history tracking with Ctrl+Z and Ctrl+Y (up to 100 actions)
+- ✅ **Copy/Paste** - Standard clipboard operations with TSV format support
 
-## Quick Start
+### Formula Engine (23 Functions)
+- **Mathematical**: SUM, AVERAGE, COUNT, MIN, MAX, PRODUCT
+- **Statistical**: COUNTA, COUNTBLANK, MEDIAN, MODE, STDEV, VAR, CORREL, PERCENTILE, QUARTILE, RANK
+- **Logical**: IF, IFS, IFERROR, IFNA, AND, OR, NOT
+- **Features**: Cell references (A1, B2), ranges (A1:B10), autocomplete, parameter hints, circular reference detection
 
-### 1. Install Dependencies
+### Excel-like Ribbon Interface
+- **Font Formatting**: Family, size, bold, italic, underline, colors
+- **Number Formatting**: General, Number, Currency, Accounting, Percentage, Date, Time
+- **Alignment**: Horizontal/vertical alignment, word wrap, merge & center
+- **Borders**: All, outline, top, bottom, left, right, none
+- **Data Operations**: Sort, filter, search/find
+- **Format Painter**: Copy cell formatting
+- **Professional SVG Icons**: Platform-independent vector icons
+
+## 📦 Installation
 
 ```bash
+npm install ng-spreadsheet
+```
+
+## 🎯 Quick Start
+
+### 1. Import the Component
+
+```typescript
+import { Component } from '@angular/core';
+import { SpreadsheetComponent, SpreadsheetData } from 'ng-spreadsheet';
+
+@Component({
+  selector: 'app-root',
+  imports: [SpreadsheetComponent],
+  template: `
+    <ngs-spreadsheet
+      [data]="spreadsheetData"
+      [height]="600"
+      [width]="1200"
+      (cellClick)="onCellClick($event)"
+      (cellChange)="onCellChange($event)"
+    />
+  `
+})
+export class AppComponent {
+  spreadsheetData: SpreadsheetData = {
+    sheets: [{
+      id: 'sheet_1',
+      name: 'Sheet1',
+      rowCount: 1000,
+      colCount: 26,
+      cells: this.initializeCells(),
+      isActive: true,
+    }],
+    activeSheetIndex: 0,
+  };
+
+  private initializeCells() {
+    // Initialize your cell data here
+    return [];
+  }
+
+  onCellClick(address: any) {
+    console.log('Cell clicked:', address);
+  }
+
+  onCellChange(event: any) {
+    console.log('Cell changed:', event);
+  }
+}
+```
+
+### 2. See it in Action
+
+Check out the [Live Demo](#demo) to see all features in action!
+
+## 📖 Documentation
+
+For complete API documentation, usage examples, and advanced features, visit:
+- [Library README](projects/ng-spreadsheet/README.md) - Complete API reference
+- [CHANGELOG](CHANGELOG.md) - Version history and changes
+
+## 🎮 Demo
+
+Run the demo application locally:
+
+```bash
+# Clone the repository
+git clone https://github.com/ashitabi/ng-spreadsheet.git
+cd ng-spreadsheet
+
+# Install dependencies
 npm install
-```
 
-### 2. Build the Library
+# Build the library
+npm run build:lib
 
-```bash
-npm run build ng-spreadsheet
-```
-
-### 3. Run the Demo
-
-```bash
+# Run the demo
 npm start demo
 ```
 
 Then open http://localhost:4200 in your browser.
 
-## Development Workflow
+## 🛠️ Development
 
 ### Building the Library
 
 ```bash
 # Build once
-npm run build ng-spreadsheet
+npm run build:lib
 
-# Watch mode (rebuild on changes)
-npm run build ng-spreadsheet -- --watch
+# Build in watch mode
+npm run build:lib:watch
 ```
 
-### Running the Demo
+### Running Tests
 
 ```bash
-# Serve the demo app
-npm start demo
+# Run library tests
+npm run test:lib
 
-# Or with specific port
-ng serve demo --port 4200
+# Run with coverage
+npm run test:lib -- --code-coverage
 ```
 
-### Testing
+### Publishing
 
 ```bash
-# Run tests for the library
-ng test ng-spreadsheet
+# Test publish (dry run)
+npm run publish:lib:dry-run
 
-# Run tests for the demo
-ng test demo
+# Publish to npm
+npm run publish:lib
 ```
 
-## Project Structure
-
-```
-ng-spreadsheet-workspace/
-├── projects/
-│   ├── ng-spreadsheet/          # Library source code
-│   │   ├── src/
-│   │   │   ├── lib/
-│   │   │   │   ├── components/
-│   │   │   │   ├── models/
-│   │   │   │   └── services/
-│   │   │   └── public-api.ts
-│   │   ├── README.md
-│   │   └── package.json
-│   └── demo/                    # Demo application
-│       ├── src/
-│       │   └── app/
-│       └── package.json
-├── dist/
-│   ├── ng-spreadsheet/          # Built library
-│   └── demo/                    # Built demo app
-├── angular.json
-├── package.json
-└── README.md
-```
-
-## Features Implemented (Phase 1)
-
-- ✅ Virtual scrolling for 10,000+ rows
-- ✅ Cell selection (single and range)
-- ✅ Cell editing (double-click or F2)
-- ✅ Keyboard navigation (arrows, Tab, Enter)
-- ✅ Row and column headers (A, B, C... and 1, 2, 3...)
-- ✅ Undo/redo (Ctrl+Z, Ctrl+Y)
-- ✅ Reactive state management with RxJS
-- ✅ TypeScript strict mode
-- ✅ Standalone Angular components
-
-## Upcoming Features
-
-- ⏳ Column/row resizing
-- ⏳ Cell styling (colors, borders, fonts)
-- ⏳ Copy/paste functionality
-- ⏳ HyperFormula integration for Excel formulas
-- ⏳ Excel import/export (.xlsx)
-- ⏳ PDF export
-- ⏳ Multiple sheet support
-- ⏳ Context menu
-- ⏳ Toolbar with formatting options
-
-## Technology Stack
-
-- **Angular 20+** - Latest Angular framework
-- **TypeScript** - Type-safe JavaScript
-- **Angular CDK** - Component Dev Kit for virtual scrolling
-- **RxJS** - Reactive state management
-
-## Browser Support
+## 🌐 Browser Support
 
 - Chrome (latest)
 - Firefox (latest)
 - Safari (latest)
 - Edge (latest)
 
-## Contributing
+## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
+- How to report bugs
+- How to suggest features
+- How to submit pull requests
+- Development workflow
+- Code standards
 
-## License
+## 📝 License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details
+
+## 🙏 Acknowledgments
+
+Built with:
+- [Angular](https://angular.dev) - Web framework
+- [Angular CDK](https://material.angular.io/cdk) - Component Dev Kit for virtual scrolling
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript
+
+## 📞 Support
+
+- 🐛 [Report a bug](https://github.com/ashitabi/ng-spreadsheet/issues/new?labels=bug)
+- 💡 [Request a feature](https://github.com/ashitabi/ng-spreadsheet/issues/new?labels=enhancement)
+- ❓ [Ask a question](https://github.com/ashitabi/ng-spreadsheet/discussions)
+
+## ⭐ Show Your Support
+
+If you find this project useful, please consider giving it a star on GitHub!
+
+---
+
+<div align="center">
+Made with ❤️ by the ng-spreadsheet contributors
+</div>

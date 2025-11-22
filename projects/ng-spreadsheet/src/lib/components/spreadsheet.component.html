@@ -1,4 +1,10 @@
 <div class="excel-spreadsheet" [style.height.px]="height" [style.width.px]="width" tabindex="0">
+  <!-- Ribbon Toolbar -->
+  <ngs-spreadsheet-ribbon
+    [currentStyle]="getCurrentCellStyle()"
+    (ribbonAction)="onRibbonAction($event)"
+  ></ngs-spreadsheet-ribbon>
+
   <!-- Formula Bar -->
   <div class="formula-bar">
     <div class="cell-name">{{ getSelectedCellName() }}</div>
@@ -26,11 +32,14 @@
           class="column-header"
           [style.width.px]="getColumnWidth(col)"
           [style.left.px]="getColumnLeft(col)"
+          (click)="onColumnHeaderClick($event, col)"
+          (contextmenu)="onColumnHeaderContextMenu($event, col)"
         >
           <span>{{ getColumnLabel(col) }}</span>
           <div
             class="column-resizer"
             (mousedown)="onColumnResizerMouseDown($event, col)"
+            (dblclick)="onColumnResizerDoubleClick($event, col)"
           ></div>
         </div>
       </div>
@@ -41,13 +50,14 @@
       <cdk-virtual-scroll-viewport
         #rowHeadersViewport
         [itemSize]="ROW_HEIGHT"
-        [style.height.px]="height - FORMULA_BAR_HEIGHT - HEADER_HEIGHT"
+        [style.height.px]="height - FORMULA_BAR_HEIGHT - RIBBON_HEIGHT - HEADER_HEIGHT"
         class="row-headers-viewport"
       >
         <div
           *cdkVirtualFor="let row of getRows(); trackBy: trackByRow"
           class="row-header"
           [style.height.px]="ROW_HEIGHT"
+          (click)="onRowHeaderClick($event, row)"
         >
           <span>{{ getRowLabel(row) }}</span>
           <div
@@ -63,7 +73,7 @@
       <cdk-virtual-scroll-viewport
         #cellsViewport
         [itemSize]="ROW_HEIGHT"
-        [style.height.px]="height - FORMULA_BAR_HEIGHT - HEADER_HEIGHT"
+        [style.height.px]="height - FORMULA_BAR_HEIGHT - RIBBON_HEIGHT - HEADER_HEIGHT"
         [style.width.px]="width - ROW_HEADER_WIDTH"
         class="cells-viewport"
         (scroll)="onCellsScroll($event)"
@@ -83,6 +93,7 @@
             [style.width.px]="getColumnWidth(col)"
             [style.height.px]="ROW_HEIGHT"
             [style.left.px]="getColumnLeft(col)"
+            [ngStyle]="getCellStyle(row, col)"
             (mousedown)="onCellMouseDown($event, row, col)"
             (mousemove)="onCellMouseMove($event, row, col)"
             (dblclick)="onCellDoubleClick($event, row, col)"
@@ -134,6 +145,26 @@
       <span>Paste</span>
       <span class="shortcut">Ctrl+V</span>
     </div>
+    <div class="context-menu-item context-menu-submenu" (mouseenter)="showPasteSpecialMenu = true" (mouseleave)="showPasteSpecialMenu = false">
+      <span>Paste Special</span>
+      <span class="arrow">►</span>
+      <div *ngIf="showPasteSpecialMenu" class="context-submenu">
+        <div class="context-menu-item" (click)="onContextMenuPasteSpecial('values')">
+          <span>Values Only</span>
+        </div>
+        <div class="context-menu-item" (click)="onContextMenuPasteSpecial('formats')">
+          <span>Formats Only</span>
+        </div>
+        <div class="context-menu-item" (click)="onContextMenuPasteSpecial('formulas')">
+          <span>Formulas Only</span>
+        </div>
+      </div>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" (click)="onContextMenuDelete()">
+      <span>Delete</span>
+      <span class="shortcut">Del</span>
+    </div>
     <div class="context-menu-divider"></div>
     <div class="context-menu-item" (click)="onContextMenuInsertRow()">
       <span>Insert Row</span>
@@ -146,6 +177,25 @@
       <span>Insert Column</span>
     </div>
     <div class="context-menu-item" (click)="onContextMenuDeleteColumn()">
+      <span>Delete Column</span>
+    </div>
+  </div>
+
+  <!-- Column Header Context Menu -->
+  <div
+    *ngIf="columnContextMenuVisible"
+    class="context-menu"
+    [style.left.px]="columnContextMenuX"
+    [style.top.px]="columnContextMenuY"
+  >
+    <div class="context-menu-item" (click)="onColumnContextMenuAutoFit()">
+      <span>AutoFit Column Width</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" (click)="onColumnContextMenuInsert()">
+      <span>Insert Column</span>
+    </div>
+    <div class="context-menu-item" (click)="onColumnContextMenuDelete()">
       <span>Delete Column</span>
     </div>
   </div>

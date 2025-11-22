@@ -4,26 +4,73 @@ A production-ready Angular spreadsheet component library with Excel-like functio
 
 ## Features
 
-### Phase 1 - Core Features (✅ Implemented)
+### Core Spreadsheet Functionality ✅
 
-- **Excel-like Grid Component**
-  - ✅ Virtual scrolling for performance (handles 10,000+ rows smoothly)
-  - ✅ Cell selection (single and range selection with mouse/keyboard)
-  - ✅ Cell editing (double-click or F2 to edit)
-  - ✅ Keyboard navigation (arrow keys, Tab, Enter)
-  - ✅ Row and column headers (A, B, C... and 1, 2, 3...)
-  - ✅ Undo/redo (Ctrl+Z, Ctrl+Y)
-  - ⏳ Resizable columns and rows (coming soon)
-  - ⏳ Cell styling (background color, font color, bold, italic, borders) (coming soon)
-  - ⏳ Copy/paste functionality (Ctrl+C, Ctrl+V) (coming soon)
+- **Virtual Scrolling**: Smooth handling of 10,000+ rows using Angular CDK Virtual Scroll
+- **Cell Selection**: Single cell and range selection with mouse drag and Shift+click
+- **Cell Editing**: Double-click or F2 to edit, inline editing with formula bar support
+- **Keyboard Navigation**: Arrow keys, Tab, Enter, Shift+Tab for seamless navigation
+- **Row/Column Headers**: Interactive headers (A, B, C... and 1, 2, 3...)
+- **Column Resizing**: Drag column borders to resize with mouse
+- **Row Resizing**: Drag row borders to resize with mouse
+- **Context Menu**: Right-click menu with Cut, Copy, Paste, Delete, Insert/Delete Row/Column
+- **Fill Handle**: Excel-like green square for drag-to-fill functionality
+- **Undo/Redo**: Full history tracking with Ctrl+Z and Ctrl+Y (up to 100 actions)
+- **Copy/Paste**: Ctrl+C/V support with TSV format
 
-### Future Phases (⏳ Planned)
+### Formula Engine ✅ (23 Functions)
 
-- **Phase 2: Formula Engine** - HyperFormula integration for Excel formulas
-- **Phase 3: Styling & Formatting** - Cell styling, toolbar, number formatting
-- **Phase 4: Import/Export** - Excel (.xlsx) and PDF support
-- **Phase 5: Multiple Sheets** - Sheet tabs, cross-sheet references
-- **Phase 6: Polish & Package** - Tests, documentation, npm publishing
+**Mathematical Functions:**
+- `SUM`, `AVERAGE`, `COUNT`, `MIN`, `MAX`, `PRODUCT`
+
+**Statistical Functions:**
+- `COUNTA`, `COUNTBLANK`, `MEDIAN`, `MODE`, `STDEV`, `VAR`, `CORREL`, `PERCENTILE`, `QUARTILE`, `RANK`
+
+**Logical Functions:**
+- `IF`, `IFS`, `IFERROR`, `IFNA`, `AND`, `OR`, `NOT`
+
+**Formula Features:**
+- Cell references (A1, B2) and ranges (A1:B10)
+- Formula autocomplete with function suggestions
+- Parameter hints showing function syntax
+- Automatic recalculation when dependencies change
+- Circular reference detection
+
+### Excel-like Ribbon ✅
+
+**Font Formatting:**
+- Font family selection (Arial, Calibri, Times New Roman, Courier New, Verdana, Georgia)
+- Font size (10-24px)
+- Bold, Italic, Underline
+- Text color and background color pickers
+
+**Number Formatting:**
+- Formats: General, Number, Currency, Accounting, Percentage, Date, Time
+- Increase/decrease decimal places
+
+**Alignment:**
+- Horizontal alignment (Left, Center, Right)
+- Word wrap toggle
+
+**Data Operations:**
+- Sort ascending/descending by column
+- Filter toggle
+- Search/Find functionality
+
+### Coming Soon ⏳
+
+- **Merge & Center** cells
+- **Cell borders** (all, outline, top, bottom, left, right)
+- **Vertical alignment** (top, middle, bottom)
+- **Format Painter** to copy cell formatting
+- **Paste Special** (values, formats, formulas)
+- **Clear options** (all, contents, formats)
+- **AutoFit column width** to content
+- **Freeze panes**
+- **Data validation**
+- **Conditional formatting**
+- **Excel (.xlsx) import/export**
+- **Multiple sheet tabs**
 
 ## Installation
 
@@ -316,18 +363,38 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Roadmap
 
-- [ ] Column/row resizing
-- [ ] Cell styling (colors, borders, fonts)
-- [ ] Copy/paste functionality
-- [ ] HyperFormula integration for Excel formulas
-- [ ] Excel import/export (.xlsx)
-- [ ] PDF export
-- [ ] Multiple sheet support
-- [ ] Context menu
-- [ ] Toolbar with formatting options
-- [ ] Cell comments
+**Completed:**
+- [x] Column/row resizing
+- [x] Cell styling (colors, fonts, alignment)
+- [x] Copy/paste functionality
+- [x] Formula engine (23 functions)
+- [x] Context menu
+- [x] Ribbon with formatting options
+- [x] Undo/redo support
+
+**In Progress:**
+- [ ] Merge & Center cells
+- [ ] Cell borders
+- [ ] Vertical alignment
+- [ ] Format Painter
+- [ ] Paste Special
+- [ ] Clear options
+- [ ] AutoFit column width
+
+**Planned:**
+- [ ] Freeze panes
+- [ ] Advanced filtering
 - [ ] Data validation
 - [ ] Conditional formatting
+- [ ] Cell comments
+- [ ] Excel import/export (.xlsx)
+- [ ] CSV import/export
+- [ ] PDF export
+- [ ] Multiple sheet support with tabs
+- [ ] Cross-sheet formula references
+- [ ] Advanced formulas (VLOOKUP, HLOOKUP, INDEX, MATCH, etc.)
+- [ ] Date/Time functions
+- [ ] Text manipulation functions
 
 ## License
 

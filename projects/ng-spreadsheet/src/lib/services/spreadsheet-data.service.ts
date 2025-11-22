@@ -107,6 +107,23 @@ export class SpreadsheetDataService {
   }
 
   /**
+   * Formats a number value based on decimal places
+   */
+  private formatNumberValue(value: any, decimalPlaces?: number): string {
+    if (typeof value !== 'number') {
+      return String(value);
+    }
+
+    // If decimalPlaces is specified, format with that precision
+    if (decimalPlaces !== undefined && decimalPlaces >= 0) {
+      return value.toFixed(decimalPlaces);
+    }
+
+    // Otherwise return the number as-is
+    return String(value);
+  }
+
+  /**
    * Updates a cell value in the active sheet
    */
   updateCell(row: number, col: number, value: any): void {
@@ -141,14 +158,16 @@ export class SpreadsheetDataService {
           row,
           col
         );
-        displayValue = String(result);
+        // Format the result if it's a number
+        displayValue = this.formatNumberValue(result, cell.style?.decimalPlaces);
       } catch {
         displayValue = '#ERROR!';
         dataType = 'error';
       }
     } else if (typeof value === 'number') {
       dataType = 'number';
-      displayValue = String(value);
+      // Apply decimal formatting if specified in cell style
+      displayValue = this.formatNumberValue(value, cell.style?.decimalPlaces);
     } else if (typeof value === 'boolean') {
       dataType = 'boolean';
       displayValue = String(value);
@@ -184,39 +203,61 @@ export class SpreadsheetDataService {
    * Recalculates all formulas in a single sheet
    */
   private recalculateFormulasInSheet(sheet: Sheet): Sheet {
-    const updatedCells = sheet.cells.map((row, rowIndex) =>
-      row.map((cell, colIndex) => {
-        if (
-          typeof cell.value === 'string' &&
-          cell.value.startsWith('=')
-        ) {
-          try {
-            const result = this.formulaService.evaluateFormula(
-              cell.value,
-              sheet.cells,
-              rowIndex,
-              colIndex
-            );
-            return {
-              ...cell,
-              displayValue: String(result),
-              dataType: 'formula' as Cell['dataType'],
-            };
-          } catch {
-            return {
-              ...cell,
-              displayValue: '#ERROR!',
-              dataType: 'error' as Cell['dataType'],
-            };
+    // Create a working copy of cells
+    let workingCells = sheet.cells.map(row => [...row]);
+
+    // Recalculate all formulas (do multiple passes to handle dependencies)
+    // Maximum of 10 passes to avoid infinite loops
+    for (let pass = 0; pass < 10; pass++) {
+      let hasChanges = false;
+
+      workingCells = workingCells.map((row, rowIndex) =>
+        row.map((cell, colIndex) => {
+          if (
+            typeof cell.value === 'string' &&
+            cell.value.startsWith('=')
+          ) {
+            try {
+              const result = this.formulaService.evaluateFormula(
+                cell.value,
+                workingCells,
+                rowIndex,
+                colIndex
+              );
+              // Format the result if it's a number
+              const newDisplayValue = this.formatNumberValue(result, cell.style?.decimalPlaces);
+
+              // Check if value changed
+              if (cell.displayValue !== newDisplayValue) {
+                hasChanges = true;
+              }
+
+              return {
+                ...cell,
+                displayValue: newDisplayValue,
+                dataType: 'formula' as Cell['dataType'],
+              };
+            } catch {
+              return {
+                ...cell,
+                displayValue: '#ERROR!',
+                dataType: 'error' as Cell['dataType'],
+              };
+            }
           }
-        }
-        return cell;
-      })
-    );
+          return cell;
+        })
+      );
+
+      // If no changes in this pass, we're done
+      if (!hasChanges) {
+        break;
+      }
+    }
 
     return {
       ...sheet,
-      cells: updatedCells,
+      cells: workingCells,
     };
   }
 
@@ -230,9 +271,33 @@ export class SpreadsheetDataService {
     const cell = this.getCell(row, col);
     if (!cell) return;
 
+    const newStyle = { ...cell.style, ...style };
+
+    // If decimalPlaces changed and cell has a numeric value, refresh displayValue
+    let newDisplayValue = cell.displayValue;
+    if (style && 'decimalPlaces' in style) {
+      if (cell.dataType === 'number' && typeof cell.value === 'number') {
+        newDisplayValue = this.formatNumberValue(cell.value, newStyle.decimalPlaces);
+      } else if (cell.dataType === 'formula') {
+        // For formulas, re-evaluate to get the result
+        try {
+          const result = this.formulaService.evaluateFormula(
+            cell.value,
+            sheet.cells,
+            row,
+            col
+          );
+          newDisplayValue = this.formatNumberValue(result, newStyle.decimalPlaces);
+        } catch {
+          newDisplayValue = '#ERROR!';
+        }
+      }
+    }
+
     const updatedCell: Cell = {
       ...cell,
-      style: { ...cell.style, ...style },
+      style: newStyle,
+      displayValue: newDisplayValue,
     };
 
     const updatedCells = [...sheet.cells];
@@ -263,7 +328,6 @@ export class SpreadsheetDataService {
    * Sets the selected range
    */
   selectRange(range: CellRange | null): void {
-    console.log('selectRange called with:', range);
     this._selectedRange$.next(range);
 
     // Clear single cell selection when selecting a range
@@ -396,6 +460,21 @@ export class SpreadsheetDataService {
         modifiedDate: new Date(),
       },
     });
+  }
+
+  /**
+   * Updates the cells of the active sheet (for sorting)
+   */
+  updateSheetCells(cells: Cell[][]): void {
+    const sheet = this.getActiveSheet();
+    if (!sheet) return;
+
+    const updatedSheet: Sheet = {
+      ...sheet,
+      cells
+    };
+
+    this.updateSheet(updatedSheet);
   }
 
   /**
@@ -607,9 +686,6 @@ export class SpreadsheetDataService {
     const sheet = this.getActiveSheet();
     if (!sheet) return '';
 
-    console.log('Copy - selected range:', range);
-    console.log('Copy - selected cell:', this.getSelectedCell());
-
     let data: any[][] = [];
 
     if (range) {
@@ -618,8 +694,6 @@ export class SpreadsheetDataService {
       const maxRow = Math.max(range.start.row, range.end.row);
       const minCol = Math.min(range.start.col, range.end.col);
       const maxCol = Math.max(range.start.col, range.end.col);
-
-      console.log(`Copying range: rows ${minRow}-${maxRow}, cols ${minCol}-${maxCol}`);
 
       for (let row = minRow; row <= maxRow; row++) {
         const rowData: any[] = [];
@@ -633,16 +707,13 @@ export class SpreadsheetDataService {
       // Copy single cell
       const selected = this.getSelectedCell();
       if (selected) {
-        console.log(`Copying single cell: row ${selected.row}, col ${selected.col}`);
         const cell = this.getCell(selected.row, selected.col);
         data = [[cell?.value ?? '']];
       }
     }
 
-    console.log('Copy data:', data);
     // Convert to TSV format for clipboard
     const result = data.map(row => row.join('\t')).join('\n');
-    console.log('Copy result (TSV):', result);
     return result;
   }
 

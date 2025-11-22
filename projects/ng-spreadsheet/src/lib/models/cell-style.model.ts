@@ -41,6 +41,27 @@ export interface CellStyle {
 
   /** Padding inside the cell */
   padding?: string;
+
+  /** Word wrap (white-space CSS property) */
+  whiteSpace?: 'normal' | 'nowrap' | 'pre' | 'pre-wrap' | 'pre-line';
+
+  /** Number format type (e.g., 'general', 'number', 'currency', 'percentage', 'date', 'time', 'accounting') */
+  numberFormat?: string;
+
+  /** Number format pattern (e.g., '#,##0.00', '$#,##0.00', '0.00%') */
+  numberFormatPattern?: string;
+
+  /** Currency symbol for currency format */
+  currencySymbol?: string;
+
+  /** Number of decimal places */
+  decimalPlaces?: number;
+
+  /** Column span for merged cells (number of columns to span) */
+  colSpan?: number;
+
+  /** Row span for merged cells (number of rows to span) */
+  rowSpan?: number;
 }
 
 /**
@@ -58,4 +79,6 @@ export const DEFAULT_CELL_STYLE: CellStyle = {
   textDecoration: 'none',
   border: '1px solid #d0d0d0',
   padding: '4px',
+  whiteSpace: 'nowrap',
+  numberFormat: 'general',
 };
