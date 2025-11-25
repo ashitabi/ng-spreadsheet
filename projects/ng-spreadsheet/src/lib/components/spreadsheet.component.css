@@ -143,6 +143,7 @@
   user-select: none;
   cursor: default;
   position: relative;
+  box-sizing: border-box;
 }
 
 .row-header:hover {
@@ -322,29 +323,35 @@
 
 /* Scrollbar Styling */
 .cells-viewport::-webkit-scrollbar,
-.column-headers-container::-webkit-scrollbar,
-.row-headers-viewport::-webkit-scrollbar {
+.column-headers-container::-webkit-scrollbar {
   width: 12px;
   height: 12px;
 }
 
 .cells-viewport::-webkit-scrollbar-track,
-.column-headers-container::-webkit-scrollbar-track,
-.row-headers-viewport::-webkit-scrollbar-track {
+.column-headers-container::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
 .cells-viewport::-webkit-scrollbar-thumb,
-.column-headers-container::-webkit-scrollbar-thumb,
-.row-headers-viewport::-webkit-scrollbar-thumb {
+.column-headers-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 6px;
 }
 
 .cells-viewport::-webkit-scrollbar-thumb:hover,
-.column-headers-container::-webkit-scrollbar-thumb:hover,
-.row-headers-viewport::-webkit-scrollbar-thumb:hover {
+.column-headers-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
+}
+
+/* Hide scrollbar on row headers (they scroll programmatically) */
+.row-headers-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.row-headers-viewport {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* Formula Autocomplete */

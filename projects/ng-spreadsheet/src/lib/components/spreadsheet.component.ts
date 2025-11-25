@@ -1151,7 +1151,9 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    * Context menu: Insert Row
    */
   onContextMenuInsertRow(): void {
-    // TODO: Implement insert row functionality
+    if (this.selectedCell) {
+      this.dataService.insertRow(this.selectedCell.row);
+    }
     this.contextMenuVisible = false;
   }
 
@@ -1159,7 +1161,9 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    * Context menu: Insert Column
    */
   onContextMenuInsertColumn(): void {
-    // TODO: Implement insert column functionality
+    if (this.selectedCell) {
+      this.dataService.insertColumn(this.selectedCell.col);
+    }
     this.contextMenuVisible = false;
   }
 
@@ -1167,7 +1171,9 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    * Context menu: Delete Row
    */
   onContextMenuDeleteRow(): void {
-    // TODO: Implement delete row functionality
+    if (this.selectedCell) {
+      this.dataService.deleteRow(this.selectedCell.row);
+    }
     this.contextMenuVisible = false;
   }
 
@@ -1175,7 +1181,9 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    * Context menu: Delete Column
    */
   onContextMenuDeleteColumn(): void {
-    // TODO: Implement delete column functionality
+    if (this.selectedCell) {
+      this.dataService.deleteColumn(this.selectedCell.col);
+    }
     this.contextMenuVisible = false;
   }
 
