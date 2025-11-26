@@ -1,5 +1,5 @@
 {
-  "name": "ng-spreadsheet",
+  "name": "@ashitrai/ng-spreadsheet",
   "version": "0.1.0",
   "description": "A production-ready Angular spreadsheet component library with Excel-like functionality",
   "keywords": [
