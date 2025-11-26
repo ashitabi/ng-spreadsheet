@@ -10,6 +10,9 @@
     "paths": {
       "ng-spreadsheet": [
         "./dist/ng-spreadsheet"
+      ],
+      "@ashitrai/ng-spreadsheet": [
+        "./dist/ng-spreadsheet"
       ]
     },
     "noFallthroughCasesInSwitch": true,
