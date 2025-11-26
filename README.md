@@ -47,7 +47,7 @@
 ## 📦 Installation
 
 ```bash
-npm install ng-spreadsheet
+npm install @ashitrai/ng-spreadsheet
 ```
 
 ## 🎯 Quick Start
@@ -56,7 +56,7 @@ npm install ng-spreadsheet
 
 ```typescript
 import { Component } from '@angular/core';
-import { SpreadsheetComponent, SpreadsheetData } from 'ng-spreadsheet';
+import { SpreadsheetComponent, SpreadsheetData } from '@ashitrai/ng-spreadsheet';
 
 @Component({
   selector: 'app-root',
@@ -132,15 +132,19 @@ Then open http://localhost:4200 in your browser.
 
 ## 🛠️ Development
 
+> **⚠️ Important**: When working with this repository, you **must build the library first** before running the demo app. The demo imports from the built library in `dist/ng-spreadsheet`.
+
 ### Building the Library
 
 ```bash
 # Build once
 npm run build:lib
 
-# Build in watch mode
+# Build in watch mode (automatically rebuilds on changes)
 npm run build:lib:watch
 ```
+
+**After cloning the repository, always run `npm run build:lib` before starting the demo.**
 
 ### Running Tests
 
