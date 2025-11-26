@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { SpreadsheetComponent, SpreadsheetData, SpreadsheetDataService } from 'ng-spreadsheet';
+import { SpreadsheetComponent, SpreadsheetData, SpreadsheetDataService } from '@ashitrai/ng-spreadsheet';
 
 @Component({
   selector: 'app-root',
