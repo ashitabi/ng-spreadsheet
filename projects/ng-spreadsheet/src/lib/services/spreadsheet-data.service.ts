@@ -9,6 +9,7 @@ import {
   SpreadsheetData,
   createDefaultSpreadsheet,
   createEmptyCell,
+  createEmptySheet,
 } from '../models';
 import { FormulaService } from './formula.service';
 
@@ -438,6 +439,96 @@ export class SpreadsheetDataService {
       sheets: updatedSheets,
       activeSheetIndex: index,
     });
+  }
+
+  /**
+   * Adds a new sheet to the spreadsheet
+   */
+  addSheet(name?: string): void {
+    const data = this.getData();
+    const sheetNumber = data.sheets.length + 1;
+    const sheetName = name || `Sheet${sheetNumber}`;
+
+    const newSheet: Sheet = createEmptySheet({ name: sheetName });
+
+    this._data$.next({
+      ...data,
+      sheets: [...data.sheets, newSheet],
+      metadata: {
+        ...data.metadata,
+        modifiedDate: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Deletes a sheet from the spreadsheet
+   */
+  deleteSheet(index: number): void {
+    const data = this.getData();
+
+    // Can't delete if only one sheet remains
+    if (data.sheets.length <= 1) return;
+
+    // Can't delete invalid index
+    if (index < 0 || index >= data.sheets.length) return;
+
+    const updatedSheets = data.sheets.filter((_, i) => i !== index);
+
+    // If we deleted the active sheet, activate another one
+    let newActiveIndex = data.activeSheetIndex;
+    if (index === data.activeSheetIndex) {
+      // If deleted the last sheet, activate the new last sheet
+      newActiveIndex = index >= updatedSheets.length ? updatedSheets.length - 1 : index;
+    } else if (index < data.activeSheetIndex) {
+      // If deleted a sheet before the active one, adjust the index
+      newActiveIndex = data.activeSheetIndex - 1;
+    }
+
+    const sheetsWithActiveFlag = updatedSheets.map((sheet, i) => ({
+      ...sheet,
+      isActive: i === newActiveIndex,
+    }));
+
+    this._data$.next({
+      ...data,
+      sheets: sheetsWithActiveFlag,
+      activeSheetIndex: newActiveIndex,
+      metadata: {
+        ...data.metadata,
+        modifiedDate: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Renames a sheet
+   */
+  renameSheet(index: number, newName: string): void {
+    const data = this.getData();
+
+    if (index < 0 || index >= data.sheets.length) return;
+    if (!newName || !newName.trim()) return;
+
+    const updatedSheets = data.sheets.map((sheet, i) =>
+      i === index ? { ...sheet, name: newName.trim() } : sheet
+    );
+
+    this._data$.next({
+      ...data,
+      sheets: updatedSheets,
+      metadata: {
+        ...data.metadata,
+        modifiedDate: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Gets all sheets in the spreadsheet
+   */
+  getSheets(): Sheet[] {
+    return this.getData().sheets;
   }
 
   /**

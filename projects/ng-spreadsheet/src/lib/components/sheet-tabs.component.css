@@ -1,0 +1,130 @@
+/* Sheet Tabs Container */
+.sheet-tabs-container {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  background: #f3f3f3;
+  border-top: 1px solid #d4d4d4;
+  overflow: hidden;
+}
+
+.sheet-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  scrollbar-width: thin;
+}
+
+.sheet-tabs-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.sheet-tabs-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sheet-tabs-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.sheet-tabs-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Sheet Tab */
+.sheet-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  font-size: 11px;
+  min-width: 60px;
+  max-width: 200px;
+  transition: background-color 0.15s;
+}
+
+.sheet-tab:hover {
+  background: #f8f8f8;
+}
+
+.sheet-tab.active {
+  background: #fff;
+  border-bottom: 2px solid #fff;
+  font-weight: 600;
+  color: #217346;
+  z-index: 1;
+}
+
+.sheet-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Delete Button */
+.sheet-delete {
+  display: none;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+
+.sheet-tab:hover .sheet-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheet-delete:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
+/* Add Sheet Button */
+.sheet-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: #217346;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.sheet-add:hover {
+  background: #e7f4ee;
+  border-color: #217346;
+}
+
+.sheet-add:active {
+  background: #d0e8da;
+}

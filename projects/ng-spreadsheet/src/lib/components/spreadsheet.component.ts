@@ -27,6 +27,7 @@ import {
   colIndexToLetter,
 } from '../models';
 import { SpreadsheetRibbonComponent, RibbonAction } from './spreadsheet-ribbon.component';
+import { SheetTabsComponent } from './sheet-tabs.component';
 
 /**
  * Main spreadsheet component that displays an Excel-like grid with virtual scrolling.
@@ -46,7 +47,7 @@ import { SpreadsheetRibbonComponent, RibbonAction } from './spreadsheet-ribbon.c
 @Component({
   selector: 'ngs-spreadsheet',
   standalone: true,
-  imports: [CommonModule, ScrollingModule, SpreadsheetRibbonComponent],
+  imports: [CommonModule, ScrollingModule, SpreadsheetRibbonComponent, SheetTabsComponent],
   templateUrl: './spreadsheet.component.html',
   styleUrls: ['./spreadsheet.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -114,6 +115,9 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   isDragging = false;
   rangeStart: CellAddress | null = null;
   rangeEnd: CellAddress | null = null;
+
+  // Saved range for multi-cell editing (preserved during edit mode)
+  savedEditRange: { start: CellAddress; end: CellAddress } | null = null;
 
   // Virtual scrolling configuration
   readonly ROW_HEIGHT = 25;
@@ -308,9 +312,28 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
 
       case 'Delete':
       case 'Backspace':
-        if (!selected) { handled = false; break; }
         if (!this.readonly) {
-          this.dataService.updateCell(selected.row, selected.col, '');
+          // Check if there's a range selection first
+          if (this.rangeStart && this.rangeEnd) {
+            // Delete all cells in the range
+            const minRow = Math.min(this.rangeStart.row, this.rangeEnd.row);
+            const maxRow = Math.max(this.rangeStart.row, this.rangeEnd.row);
+            const minCol = Math.min(this.rangeStart.col, this.rangeEnd.col);
+            const maxCol = Math.max(this.rangeStart.col, this.rangeEnd.col);
+
+            for (let row = minRow; row <= maxRow; row++) {
+              for (let col = minCol; col <= maxCol; col++) {
+                this.dataService.updateCell(row, col, '');
+              }
+            }
+          } else if (selected) {
+            // Delete single selected cell
+            this.dataService.updateCell(selected.row, selected.col, '');
+          } else {
+            handled = false;
+          }
+        } else {
+          handled = false;
         }
         break;
 
@@ -319,7 +342,16 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
           event.preventDefault();
           this.dataService.undo();
         } else {
-          handled = false;
+          const cellToEdit = selected || this.rangeStart;
+          if (cellToEdit && !this.readonly) {
+            // Start editing with 'z'
+            event.preventDefault();
+            this.editingValue = event.key;
+            this.dataService.setEditingCell(cellToEdit);
+            handled = true;
+          } else {
+            handled = false;
+          }
         }
         break;
 
@@ -328,7 +360,16 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
           event.preventDefault();
           this.dataService.redo();
         } else {
-          handled = false;
+          const cellToEdit = selected || this.rangeStart;
+          if (cellToEdit && !this.readonly) {
+            // Start editing with 'y'
+            event.preventDefault();
+            this.editingValue = event.key;
+            this.dataService.setEditingCell(cellToEdit);
+            handled = true;
+          } else {
+            handled = false;
+          }
         }
         break;
 
@@ -337,7 +378,16 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
           event.preventDefault();
           this.handleCopy();
         } else {
-          handled = false;
+          const cellToEdit = selected || this.rangeStart;
+          if (cellToEdit && !this.readonly) {
+            // Start editing with 'c'
+            event.preventDefault();
+            this.editingValue = event.key;
+            this.dataService.setEditingCell(cellToEdit);
+            handled = true;
+          } else {
+            handled = false;
+          }
         }
         break;
 
@@ -346,12 +396,46 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
           event.preventDefault();
           this.handlePaste();
         } else {
-          handled = false;
+          const cellToEdit = selected || this.rangeStart;
+          if (cellToEdit && !this.readonly) {
+            // Start editing with 'v'
+            event.preventDefault();
+            this.editingValue = event.key;
+            this.dataService.setEditingCell(cellToEdit);
+            handled = true;
+          } else {
+            handled = false;
+          }
         }
         break;
 
       default:
-        handled = false;
+        // Check if this is a printable character and no modifier keys are pressed
+        // This allows typing to automatically start editing the cell (Excel-like behavior)
+        // Use selectedCell if available, otherwise use rangeStart (when a range is selected)
+        const cellToEdit = selected || this.rangeStart;
+        if (cellToEdit && !this.readonly && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          // Check if it's a printable character (length = 1) or if it starts with '='
+          if (event.key.length === 1 || event.key === '=') {
+            event.preventDefault();
+            // Save the range before starting to edit (for Ctrl+Enter multi-cell fill)
+            if (this.rangeStart && this.rangeEnd) {
+              this.savedEditRange = { start: this.rangeStart, end: this.rangeEnd };
+              console.log('[DEBUG] Saved range for multi-cell edit:', this.savedEditRange);
+            } else {
+              this.savedEditRange = null;
+              console.log('[DEBUG] No range to save, selectedCell:', this.selectedCell, 'rangeStart:', this.rangeStart);
+            }
+            // Start editing with the typed character
+            this.editingValue = event.key;
+            this.dataService.setEditingCell(cellToEdit);
+            handled = true;
+          } else {
+            handled = false;
+          }
+        } else {
+          handled = false;
+        }
     }
 
     if (handled) {
@@ -378,6 +462,11 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   onCellMouseDown(event: MouseEvent, row: number, col: number): void {
     event.preventDefault();
     event.stopPropagation();
+
+    // If we're currently editing a cell, commit the edit first
+    if (this.editingCell) {
+      this.commitEdit();
+    }
 
     // Focus the spreadsheet container to enable keyboard navigation
     const container = (event.target as HTMLElement).closest('.spreadsheet-container') as HTMLElement;
@@ -537,8 +626,17 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
     }
 
     // Handle fill handle dragging
-    if (this.isFilling && this.fillStartRow >= 0 && this.fillStartCol >= 0) {
-      const cell = this.getCellAtPosition(event.clientX, event.clientY);
+    if (this.isFilling && this.fillStartRow >= 0 && this.fillStartCol >= 0 && this.cellsViewport) {
+      // Get the cells viewport element
+      const viewportEl = this.cellsViewport.elementRef.nativeElement;
+      const rect = viewportEl.getBoundingClientRect();
+
+      // Calculate mouse position relative to viewport
+      const mouseX = event.clientX - rect.left + viewportEl.scrollLeft;
+      const mouseY = event.clientY - rect.top + viewportEl.scrollTop;
+
+      // Find which cell the mouse is over
+      const cell = this.getCellAtPosition(mouseX, mouseY);
       if (cell) {
         this.fillEndRow = cell.row;
         this.fillEndCol = cell.col;
@@ -651,11 +749,16 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
       }
 
       event.preventDefault();
-      this.commitEdit();
 
-      // Move to next row
-      if (this.editingCell) {
-        this.moveSelection(this.editingCell.row + 1, this.editingCell.col);
+      // Check if Ctrl+Enter (or Cmd+Enter on Mac) - apply to all cells in range
+      if (event.ctrlKey || event.metaKey) {
+        this.commitEditToRange();
+      } else {
+        this.commitEdit();
+        // Move to next row
+        if (this.editingCell) {
+          this.moveSelection(this.editingCell.row + 1, this.editingCell.col);
+        }
       }
     } else if (event.key === 'Escape') {
       event.preventDefault();
@@ -712,6 +815,72 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
       });
     }
 
+    this.dataService.setEditingCell(null);
+    this.editingValue = '';
+  }
+
+  /**
+   * Commits the current edit to all cells in the selected range
+   * (Excel-like Ctrl+Enter behavior)
+   */
+  private commitEditToRange(): void {
+    if (!this.editingCell) return;
+
+    const newValue = this.editingValue;
+
+    console.log('[DEBUG] commitEditToRange called, savedEditRange:', this.savedEditRange, 'newValue:', newValue);
+
+    // If there's a saved range selection, apply to all cells in the range
+    if (this.savedEditRange) {
+      const minRow = Math.min(this.savedEditRange.start.row, this.savedEditRange.end.row);
+      const maxRow = Math.max(this.savedEditRange.start.row, this.savedEditRange.end.row);
+      const minCol = Math.min(this.savedEditRange.start.col, this.savedEditRange.end.col);
+      const maxCol = Math.max(this.savedEditRange.start.col, this.savedEditRange.end.col);
+
+      // Apply the value to all cells in the range
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const cell = this.dataService.getCell(row, col);
+          if (cell && !cell.readonly) {
+            const oldValue = cell.value;
+            if (oldValue !== newValue) {
+              this.dataService.updateCell(row, col, newValue);
+              this.cellChange.emit({
+                address: { row, col },
+                oldValue,
+                newValue,
+              });
+            }
+          }
+        }
+      }
+    } else {
+      // No range selected, just commit to the single cell
+      const cell = this.dataService.getCell(
+        this.editingCell.row,
+        this.editingCell.col
+      );
+
+      if (cell) {
+        const oldValue = cell.value;
+        if (oldValue !== newValue) {
+          this.dataService.updateCell(
+            this.editingCell.row,
+            this.editingCell.col,
+            newValue
+          );
+
+          this.cellChange.emit({
+            address: this.editingCell,
+            oldValue,
+            newValue,
+          });
+        }
+      }
+    }
+
+    // Clear saved range and edit state
+    this.savedEditRange = null;
     this.dataService.setEditingCell(null);
     this.editingValue = '';
   }
@@ -1588,7 +1757,29 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
    */
   getCellStyle(row: number, col: number): any {
     const cell = this.dataService.getCell(row, col);
-    return cell?.style || {};
+    const style = cell?.style || {};
+
+    // Convert CellStyle properties to CSS style object
+    const cssStyle: any = {};
+
+    if (style.fontFamily) cssStyle['font-family'] = style.fontFamily;
+    if (style.fontSize) cssStyle['font-size'] = style.fontSize;
+    if (style.fontWeight) cssStyle['font-weight'] = style.fontWeight;
+    if (style.fontStyle) cssStyle['font-style'] = style.fontStyle;
+    if (style.textDecoration) cssStyle['text-decoration'] = style.textDecoration;
+    if (style.color) cssStyle['color'] = style.color;
+    if (style.backgroundColor) cssStyle['background-color'] = style.backgroundColor;
+    if (style.textAlign) cssStyle['text-align'] = style.textAlign;
+    if (style.verticalAlign) cssStyle['vertical-align'] = style.verticalAlign;
+    if (style.whiteSpace) cssStyle['white-space'] = style.whiteSpace;
+    if (style.padding) cssStyle['padding'] = style.padding;
+    if (style.border) cssStyle['border'] = style.border;
+    if (style.borderTop) cssStyle['border-top'] = style.borderTop;
+    if (style.borderRight) cssStyle['border-right'] = style.borderRight;
+    if (style.borderBottom) cssStyle['border-bottom'] = style.borderBottom;
+    if (style.borderLeft) cssStyle['border-left'] = style.borderLeft;
+
+    return cssStyle;
   }
 
   // ========== NEW FEATURE METHODS ==========

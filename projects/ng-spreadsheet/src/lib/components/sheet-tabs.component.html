@@ -1,0 +1,25 @@
+<div class="sheet-tabs-container" *ngIf="sheets$ | async as data">
+  <div class="sheet-tabs-scroll">
+    <div
+      *ngFor="let sheet of data.sheets; let i = index; trackBy: trackBySheetId"
+      class="sheet-tab"
+      [class.active]="i === data.activeSheetIndex"
+      (click)="onSheetClick(i)"
+      (contextmenu)="onSheetContextMenu(i, $event)"
+    >
+      <span class="sheet-name">{{ sheet.name }}</span>
+      <button
+        *ngIf="data.sheets.length > 1"
+        class="sheet-delete"
+        (click)="onDeleteSheet(i, $event)"
+        title="Delete sheet"
+      >
+        ×
+      </button>
+    </div>
+
+    <button class="sheet-add" (click)="onAddSheet()" title="Add new sheet">
+      +
+    </button>
+  </div>
+</div>
