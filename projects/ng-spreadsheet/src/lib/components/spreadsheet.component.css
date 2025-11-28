@@ -419,3 +419,25 @@
   color: #666;
   margin-left: 4px;
 }
+
+/* Drag and drop styles */
+.column-header[draggable="true"],
+.row-header[draggable="true"] {
+  cursor: grab;
+}
+
+.column-header[draggable="true"]:active,
+.row-header[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.column-header.dragging,
+.row-header.dragging {
+  opacity: 0.4;
+}
+
+.column-header.drag-over,
+.row-header.drag-over {
+  background-color: #e3f2fd !important;
+  border: 2px solid #217346;
+}

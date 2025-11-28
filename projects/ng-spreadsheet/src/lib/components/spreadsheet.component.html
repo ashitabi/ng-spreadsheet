@@ -34,6 +34,14 @@
           [style.left.px]="getColumnLeft(col)"
           (click)="onColumnHeaderClick($event, col)"
           (contextmenu)="onColumnHeaderContextMenu($event, col)"
+          draggable="true"
+          (dragstart)="onColumnHeaderDragStart($event, col)"
+          (dragover)="onColumnHeaderDragOver($event, col)"
+          (dragleave)="onColumnHeaderDragLeave($event)"
+          (drop)="onColumnHeaderDrop($event, col)"
+          (dragend)="onColumnHeaderDragEnd($event)"
+          [class.dragging]="isDraggingColumn && draggingColumnIndex === col"
+          [class.drag-over]="dragOverColumnIndex === col"
         >
           <span>{{ getColumnLabel(col) }}</span>
           <div
@@ -58,6 +66,14 @@
           class="row-header"
           [style.height.px]="ROW_HEIGHT"
           (click)="onRowHeaderClick($event, row)"
+          draggable="true"
+          (dragstart)="onRowHeaderDragStart($event, row)"
+          (dragover)="onRowHeaderDragOver($event, row)"
+          (dragleave)="onRowHeaderDragLeave($event)"
+          (drop)="onRowHeaderDrop($event, row)"
+          (dragend)="onRowHeaderDragEnd($event)"
+          [class.dragging]="isDraggingRow && draggingRowIndex === row"
+          [class.drag-over]="dragOverRowIndex === row"
         >
           <span>{{ getRowLabel(row) }}</span>
           <div

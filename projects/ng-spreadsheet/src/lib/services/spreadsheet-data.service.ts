@@ -17,12 +17,14 @@ import { FormulaService } from './formula.service';
  * Represents a single change in spreadsheet history for undo/redo
  */
 interface HistoryEntry {
-  type: 'cell-update' | 'cell-style' | 'row-height' | 'col-width';
+  type: 'cell-update' | 'cell-style' | 'row-height' | 'col-width' | 'row-reorder' | 'col-reorder';
   sheetId: string;
   row?: number;
   col?: number;
   oldValue?: any;
   newValue?: any;
+  fromIndex?: number;  // For reordering operations
+  toIndex?: number;    // For reordering operations
   timestamp: number;
 }
 
@@ -834,6 +836,277 @@ export class SpreadsheetDataService {
   }
 
   /**
+   * Reorders a row by moving it from one position to another
+   */
+  reorderRow(fromIndex: number, toIndex: number): void {
+    const sheet = this.getActiveSheet();
+    if (!sheet) return;
+
+    if (fromIndex < 0 || fromIndex >= sheet.rowCount ||
+        toIndex < 0 || toIndex >= sheet.rowCount ||
+        fromIndex === toIndex) {
+      return;
+    }
+
+    // Create a copy of the cells array
+    const newCells = [...sheet.cells];
+
+    // Remove the row from its original position
+    const [movedRow] = newCells.splice(fromIndex, 1);
+
+    // Insert it at the new position
+    newCells.splice(toIndex, 0, movedRow);
+
+    // Update row indices in all cells
+    for (let row = 0; row < newCells.length; row++) {
+      newCells[row] = newCells[row].map((cell) => ({
+        ...cell,
+        row,
+      }));
+    }
+
+    // Update row heights if present
+    let newRowHeights = sheet.rowHeights;
+    if (newRowHeights && newRowHeights.length > 0) {
+      newRowHeights = [...newRowHeights];
+      const [movedHeight] = newRowHeights.splice(fromIndex, 1);
+      newRowHeights.splice(toIndex, 0, movedHeight);
+    }
+
+    // Update the sheet
+    const updatedSheet: Sheet = {
+      ...sheet,
+      cells: newCells,
+      rowHeights: newRowHeights,
+    };
+
+    this.updateSheet(updatedSheet);
+
+    // Update formulas that reference the moved rows
+    this.updateFormulasAfterRowReorder(fromIndex, toIndex);
+
+    // Add to history for undo/redo
+    this.addToHistory({
+      type: 'row-reorder',
+      sheetId: sheet.id,
+      fromIndex,
+      toIndex,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Reorders a column by moving it from one position to another
+   */
+  reorderColumn(fromIndex: number, toIndex: number): void {
+    const sheet = this.getActiveSheet();
+    if (!sheet) return;
+
+    if (fromIndex < 0 || fromIndex >= sheet.colCount ||
+        toIndex < 0 || toIndex >= sheet.colCount ||
+        fromIndex === toIndex) {
+      return;
+    }
+
+    // Create a copy of the cells array
+    const newCells = sheet.cells.map(row => {
+      const newRow = [...row];
+      const [movedCell] = newRow.splice(fromIndex, 1);
+      newRow.splice(toIndex, 0, movedCell);
+
+      // Update column indices in all cells
+      return newRow.map((cell, col) => ({
+        ...cell,
+        col,
+      }));
+    });
+
+    // Update column widths if present
+    let newColumnWidths = sheet.columnWidths;
+    if (newColumnWidths && newColumnWidths.length > 0) {
+      newColumnWidths = [...newColumnWidths];
+      const [movedWidth] = newColumnWidths.splice(fromIndex, 1);
+      newColumnWidths.splice(toIndex, 0, movedWidth);
+    }
+
+    // Update the sheet
+    const updatedSheet: Sheet = {
+      ...sheet,
+      cells: newCells,
+      columnWidths: newColumnWidths,
+    };
+
+    this.updateSheet(updatedSheet);
+
+    // Update formulas that reference the moved columns
+    this.updateFormulasAfterColumnReorder(fromIndex, toIndex);
+
+    // Add to history for undo/redo
+    this.addToHistory({
+      type: 'col-reorder',
+      sheetId: sheet.id,
+      fromIndex,
+      toIndex,
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Updates formula references after a row reorder
+   */
+  private updateFormulasAfterRowReorder(fromIndex: number, toIndex: number): void {
+    const sheet = this.getActiveSheet();
+    if (!sheet) return;
+
+    const updatedCells = [...sheet.cells];
+    let hasChanges = false;
+
+    for (let row = 0; row < sheet.rowCount; row++) {
+      for (let col = 0; col < sheet.colCount; col++) {
+        const cell = updatedCells[row][col];
+        if (cell && cell.value && typeof cell.value === 'string' && cell.value.startsWith('=')) {
+          const updatedFormula = this.updateRowReferencesInFormula(cell.value, fromIndex, toIndex);
+          if (updatedFormula !== cell.value) {
+            updatedCells[row] = [...updatedCells[row]];
+            updatedCells[row][col] = {
+              ...cell,
+              value: updatedFormula,
+              displayValue: updatedFormula,
+            };
+            hasChanges = true;
+          }
+        }
+      }
+    }
+
+    if (hasChanges) {
+      const updatedSheet: Sheet = {
+        ...sheet,
+        cells: updatedCells,
+      };
+      this.updateSheet(updatedSheet);
+      this.recalculateFormulasInSheet(updatedSheet);
+    }
+  }
+
+  /**
+   * Updates formula references after a column reorder
+   */
+  private updateFormulasAfterColumnReorder(fromIndex: number, toIndex: number): void {
+    const sheet = this.getActiveSheet();
+    if (!sheet) return;
+
+    const updatedCells = [...sheet.cells];
+    let hasChanges = false;
+
+    for (let row = 0; row < sheet.rowCount; row++) {
+      for (let col = 0; col < sheet.colCount; col++) {
+        const cell = updatedCells[row][col];
+        if (cell && cell.value && typeof cell.value === 'string' && cell.value.startsWith('=')) {
+          const updatedFormula = this.updateColumnReferencesInFormula(cell.value, fromIndex, toIndex);
+          if (updatedFormula !== cell.value) {
+            updatedCells[row] = [...updatedCells[row]];
+            updatedCells[row][col] = {
+              ...cell,
+              value: updatedFormula,
+              displayValue: updatedFormula,
+            };
+            hasChanges = true;
+          }
+        }
+      }
+    }
+
+    if (hasChanges) {
+      const updatedSheet: Sheet = {
+        ...sheet,
+        cells: updatedCells,
+      };
+      this.updateSheet(updatedSheet);
+      this.recalculateFormulasInSheet(updatedSheet);
+    }
+  }
+
+  /**
+   * Updates row references in a formula string
+   */
+  private updateRowReferencesInFormula(formula: string, fromIndex: number, toIndex: number): string {
+    // Match cell references like A1, B10, $A$1, etc.
+    const cellRefRegex = /(\$?)([A-Z]+)(\$?)(\d+)/g;
+
+    return formula.replace(cellRefRegex, (match, dollarCol, col, dollarRow, rowStr) => {
+      const rowNum = parseInt(rowStr, 10) - 1; // Convert to 0-based index
+
+      // Calculate new row index
+      let newRowNum = rowNum;
+      if (rowNum === fromIndex) {
+        // This row was moved
+        newRowNum = toIndex;
+      } else if (fromIndex < toIndex && rowNum > fromIndex && rowNum <= toIndex) {
+        // Row shifted up
+        newRowNum = rowNum - 1;
+      } else if (toIndex < fromIndex && rowNum >= toIndex && rowNum < fromIndex) {
+        // Row shifted down
+        newRowNum = rowNum + 1;
+      }
+
+      return `${dollarCol}${col}${dollarRow}${newRowNum + 1}`;
+    });
+  }
+
+  /**
+   * Updates column references in a formula string
+   */
+  private updateColumnReferencesInFormula(formula: string, fromIndex: number, toIndex: number): string {
+    // Match cell references like A1, B10, $A$1, etc.
+    const cellRefRegex = /(\$?)([A-Z]+)(\$?)(\d+)/g;
+
+    return formula.replace(cellRefRegex, (match, dollarCol, col, dollarRow, rowStr) => {
+      const colIndex = this.columnLetterToIndex(col);
+
+      // Calculate new column index
+      let newColIndex = colIndex;
+      if (colIndex === fromIndex) {
+        // This column was moved
+        newColIndex = toIndex;
+      } else if (fromIndex < toIndex && colIndex > fromIndex && colIndex <= toIndex) {
+        // Column shifted left
+        newColIndex = colIndex - 1;
+      } else if (toIndex < fromIndex && colIndex >= toIndex && colIndex < fromIndex) {
+        // Column shifted right
+        newColIndex = colIndex + 1;
+      }
+
+      return `${dollarCol}${this.indexToColumnLetter(newColIndex)}${dollarRow}${rowStr}`;
+    });
+  }
+
+  /**
+   * Converts a column letter (A, B, C, ... Z, AA, AB, ...) to a 0-based index
+   */
+  private columnLetterToIndex(letter: string): number {
+    let index = 0;
+    for (let i = 0; i < letter.length; i++) {
+      index = index * 26 + (letter.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+    }
+    return index - 1;
+  }
+
+  /**
+   * Converts a 0-based column index to a letter (0->A, 1->B, ... 25->Z, 26->AA, ...)
+   */
+  private indexToColumnLetter(index: number): string {
+    let letter = '';
+    let num = index + 1;
+    while (num > 0) {
+      const remainder = (num - 1) % 26;
+      letter = String.fromCharCode('A'.charCodeAt(0) + remainder) + letter;
+      num = Math.floor((num - 1) / 26);
+    }
+    return letter;
+  }
+
+  /**
    * Undo last action
    */
   undo(): void {
@@ -867,6 +1140,28 @@ export class SpreadsheetDataService {
       this.updateSheet(updatedSheet);
 
       // Move to redo stack
+      this.redoStack.push(entry);
+    } else if (entry.type === 'row-reorder' && entry.fromIndex !== undefined && entry.toIndex !== undefined) {
+      // Undo row reorder by reversing the operation
+      // Temporarily disable history tracking
+      const tempStack = this.undoStack;
+      this.undoStack = [];
+
+      this.reorderRow(entry.toIndex, entry.fromIndex);
+
+      // Restore undo stack and move entry to redo
+      this.undoStack = tempStack;
+      this.redoStack.push(entry);
+    } else if (entry.type === 'col-reorder' && entry.fromIndex !== undefined && entry.toIndex !== undefined) {
+      // Undo column reorder by reversing the operation
+      // Temporarily disable history tracking
+      const tempStack = this.undoStack;
+      this.undoStack = [];
+
+      this.reorderColumn(entry.toIndex, entry.fromIndex);
+
+      // Restore undo stack and move entry to redo
+      this.undoStack = tempStack;
       this.redoStack.push(entry);
     }
   }
@@ -904,6 +1199,28 @@ export class SpreadsheetDataService {
       this.updateSheet(updatedSheet);
 
       // Move back to undo stack
+      this.undoStack.push(entry);
+    } else if (entry.type === 'row-reorder' && entry.fromIndex !== undefined && entry.toIndex !== undefined) {
+      // Redo row reorder by applying the original operation
+      // Temporarily disable history tracking
+      const tempStack = this.undoStack;
+      this.undoStack = [];
+
+      this.reorderRow(entry.fromIndex, entry.toIndex);
+
+      // Restore undo stack and move entry back
+      this.undoStack = tempStack;
+      this.undoStack.push(entry);
+    } else if (entry.type === 'col-reorder' && entry.fromIndex !== undefined && entry.toIndex !== undefined) {
+      // Redo column reorder by applying the original operation
+      // Temporarily disable history tracking
+      const tempStack = this.undoStack;
+      this.undoStack = [];
+
+      this.reorderColumn(entry.fromIndex, entry.toIndex);
+
+      // Restore undo stack and move entry back
+      this.undoStack = tempStack;
       this.undoStack.push(entry);
     }
   }

@@ -161,6 +161,14 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
   fillEndRow = -1;
   fillEndCol = -1;
 
+  // Row/Column drag-and-drop state
+  isDraggingRow = false;
+  isDraggingColumn = false;
+  draggingRowIndex = -1;
+  draggingColumnIndex = -1;
+  dragOverRowIndex = -1;
+  dragOverColumnIndex = -1;
+
   // Formula autocomplete state
   showAutocomplete = false;
   autocompleteX = 0;
@@ -1183,6 +1191,104 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
     this.resizingRowIndex = row;
     this.rowResizeStartY = event.clientY;
     this.rowResizeStartHeight = this.ROW_HEIGHT; // Could be made dynamic per row
+  }
+
+  /**
+   * Row header drag handlers
+   */
+  onRowHeaderDragStart(event: DragEvent, row: number): void {
+    if (!event.dataTransfer) return;
+
+    this.isDraggingRow = true;
+    this.draggingRowIndex = row;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', `row:${row}`);
+
+    if (event.target instanceof HTMLElement) {
+      event.target.style.opacity = '0.4';
+    }
+  }
+
+  onRowHeaderDragOver(event: DragEvent, row: number): void {
+    event.preventDefault();
+    if (!event.dataTransfer) return;
+
+    event.dataTransfer.dropEffect = 'move';
+    this.dragOverRowIndex = row;
+    this.cdr.detectChanges();
+  }
+
+  onRowHeaderDragLeave(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  onRowHeaderDrop(event: DragEvent, toRow: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.draggingRowIndex !== -1 && this.draggingRowIndex !== toRow) {
+      this.dataService.reorderRow(this.draggingRowIndex, toRow);
+    }
+  }
+
+  onRowHeaderDragEnd(event: DragEvent): void {
+    if (event.target instanceof HTMLElement) {
+      event.target.style.opacity = '1';
+    }
+
+    this.isDraggingRow = false;
+    this.draggingRowIndex = -1;
+    this.dragOverRowIndex = -1;
+    this.cdr.detectChanges();
+  }
+
+  /**
+   * Column header drag handlers
+   */
+  onColumnHeaderDragStart(event: DragEvent, col: number): void {
+    if (!event.dataTransfer) return;
+
+    this.isDraggingColumn = true;
+    this.draggingColumnIndex = col;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', `col:${col}`);
+
+    if (event.target instanceof HTMLElement) {
+      event.target.style.opacity = '0.4';
+    }
+  }
+
+  onColumnHeaderDragOver(event: DragEvent, col: number): void {
+    event.preventDefault();
+    if (!event.dataTransfer) return;
+
+    event.dataTransfer.dropEffect = 'move';
+    this.dragOverColumnIndex = col;
+    this.cdr.detectChanges();
+  }
+
+  onColumnHeaderDragLeave(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  onColumnHeaderDrop(event: DragEvent, toCol: number): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.draggingColumnIndex !== -1 && this.draggingColumnIndex !== toCol) {
+      this.dataService.reorderColumn(this.draggingColumnIndex, toCol);
+    }
+  }
+
+  onColumnHeaderDragEnd(event: DragEvent): void {
+    if (event.target instanceof HTMLElement) {
+      event.target.style.opacity = '1';
+    }
+
+    this.isDraggingColumn = false;
+    this.draggingColumnIndex = -1;
+    this.dragOverColumnIndex = -1;
+    this.cdr.detectChanges();
   }
 
   /**
