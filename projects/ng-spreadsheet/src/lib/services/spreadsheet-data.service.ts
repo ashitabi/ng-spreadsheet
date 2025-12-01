@@ -971,7 +971,6 @@ export class SpreadsheetDataService {
             updatedCells[row][col] = {
               ...cell,
               value: updatedFormula,
-              displayValue: updatedFormula,
             };
             hasChanges = true;
           }
@@ -1009,7 +1008,6 @@ export class SpreadsheetDataService {
             updatedCells[row][col] = {
               ...cell,
               value: updatedFormula,
-              displayValue: updatedFormula,
             };
             hasChanges = true;
           }
