@@ -1,0 +1,11 @@
+Student Name,Math Score,Science Score,Attendance %,Status
+Alice,85,92,95,Pass
+Bob,78,85,88,Pass
+Charlie,92,88,90,Pass
+Diana,65,70,75,Fail
+Eve,88,90,92,Pass
+Frank,55,60,70,Fail
+Grace,95,98,98,Pass
+Henry,72,,80,Pass
+Ivy,80,85,85,Pass
+Jack,90,92,95,Pass

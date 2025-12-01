@@ -1,0 +1,51 @@
+{
+  "testData": {
+    "description": "Test dataset for all 23 formula functions",
+    "instructions": "Copy this data into your spreadsheet, then the formulas will calculate automatically",
+    "data": [
+      { "row": 1, "A": "Student Name", "B": "Math Score", "C": "Science Score", "D": "Attendance %", "E": "Status" },
+      { "row": 2, "A": "Alice", "B": 85, "C": 92, "D": 95, "E": "Pass" },
+      { "row": 3, "A": "Bob", "B": 78, "C": 85, "D": 88, "E": "Pass" },
+      { "row": 4, "A": "Charlie", "B": 92, "C": 88, "D": 90, "E": "Pass" },
+      { "row": 5, "A": "Diana", "B": 65, "C": 70, "D": 75, "E": "Fail" },
+      { "row": 6, "A": "Eve", "B": 88, "C": 90, "D": 92, "E": "Pass" },
+      { "row": 7, "A": "Frank", "B": 55, "C": 60, "D": 70, "E": "Fail" },
+      { "row": 8, "A": "Grace", "B": 95, "C": 98, "D": 98, "E": "Pass" },
+      { "row": 9, "A": "Henry", "B": 72, "C": "", "D": 80, "E": "Pass" },
+      { "row": 10, "A": "Ivy", "B": 80, "C": 85, "D": 85, "E": "Pass" },
+      { "row": 11, "A": "Jack", "B": 90, "C": 92, "D": 95, "E": "Pass" },
+      { "row": 12, "A": "" },
+      { "row": 13, "A": "FORMULA TESTS", "B": "Formula", "C": "Result", "D": "Description" },
+      { "row": 14, "A": "1. SUM", "B": "=SUM(B2:B11)", "C": "", "D": "Sum of all math scores" },
+      { "row": 15, "A": "2. AVERAGE", "B": "=AVERAGE(B2:B11)", "C": "", "D": "Average math score" },
+      { "row": 16, "A": "3. COUNT", "B": "=COUNT(B2:B11)", "C": "", "D": "Count numeric values" },
+      { "row": 17, "A": "4. MIN", "B": "=MIN(B2:B11)", "C": "", "D": "Minimum score" },
+      { "row": 18, "A": "5. MAX", "B": "=MAX(B2:B11)", "C": "", "D": "Maximum score" },
+      { "row": 19, "A": "6. PRODUCT", "B": "=PRODUCT(2,3,4)", "C": "", "D": "Product: 2*3*4=24" },
+      { "row": 20, "A": "7. COUNTA", "B": "=COUNTA(A2:A11)", "C": "", "D": "Count non-empty cells" },
+      { "row": 21, "A": "8. COUNTBLANK", "B": "=COUNTBLANK(C2:C11)", "C": "", "D": "Count blank cells" },
+      { "row": 22, "A": "9. MEDIAN", "B": "=MEDIAN(B2:B11)", "C": "", "D": "Median score" },
+      { "row": 23, "A": "10. MODE", "B": "=MODE(D2:D11)", "C": "", "D": "Most common attendance" },
+      { "row": 24, "A": "11. STDEV", "B": "=STDEV(B2:B11)", "C": "", "D": "Standard deviation" },
+      { "row": 25, "A": "12. VAR", "B": "=VAR(B2:B11)", "C": "", "D": "Variance" },
+      { "row": 26, "A": "13. CORREL", "B": "=CORREL(B2:B11,C2:C11)", "C": "", "D": "Correlation: Math vs Science" },
+      { "row": 27, "A": "14. PERCENTILE", "B": "=PERCENTILE(B2:B11,0.75)", "C": "", "D": "75th percentile" },
+      { "row": 28, "A": "15. QUARTILE", "B": "=QUARTILE(B2:B11,1)", "C": "", "D": "First quartile (Q1)" },
+      { "row": 29, "A": "16. RANK", "B": "=RANK(95,B2:B11)", "C": "", "D": "Rank of score 95" },
+      { "row": 30, "A": "17. IF", "B": "=IF(B2>80,\"Good\",\"OK\")", "C": "", "D": "Conditional: >80 is Good" },
+      { "row": 31, "A": "18. IFS", "B": "=IFS(B2>90,\"A\",B2>80,\"B\",B2>70,\"C\")", "C": "", "D": "Multiple conditions" },
+      { "row": 32, "A": "19. IFERROR", "B": "=IFERROR(B2/0,\"Error\")", "C": "", "D": "Handle division by zero" },
+      { "row": 33, "A": "20. IFNA", "B": "=IFNA(B2,\"N/A\")", "C": "", "D": "Handle N/A values" },
+      { "row": 34, "A": "21. AND", "B": "=AND(B2>70,C2>70)", "C": "", "D": "Both conditions true?" },
+      { "row": 35, "A": "22. OR", "B": "=OR(B2>90,C2>90)", "C": "", "D": "Either condition true?" },
+      { "row": 36, "A": "23. NOT", "B": "=NOT(B2<60)", "C": "", "D": "Negate condition" }
+    ]
+  },
+  "quickSetupInstructions": [
+    "1. Open the spreadsheet at http://localhost:4201",
+    "2. Enter the student data (rows 1-11) manually or paste",
+    "3. Enter the formulas in column B (rows 14-36)",
+    "4. All formulas will calculate automatically",
+    "5. Column C will show the computed results"
+  ]
+}
