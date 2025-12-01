@@ -207,6 +207,7 @@ export class SpreadsheetComponent implements OnInit, OnDestroy {
     { name: 'AND', description: 'All conditions must be true', syntax: 'AND(logical1, logical2, ...)' },
     { name: 'OR', description: 'Any condition must be true', syntax: 'OR(logical1, logical2, ...)' },
     { name: 'NOT', description: 'Reverses logic', syntax: 'NOT(logical)' },
+    { name: 'VLOOKUP', description: 'Vertical lookup in a table', syntax: 'VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])' },
   ];
 
   private destroy$ = new Subject<void>();

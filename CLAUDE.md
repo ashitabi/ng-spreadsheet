@@ -171,7 +171,7 @@ When testing, remember:
 - **Fill Handle**: Excel-like green square for drag-to-fill functionality
 - **Undo/Redo**: Full history tracking with Ctrl+Z and Ctrl+Y (up to 100 actions)
 
-### Formula Engine (23 Functions)
+### Formula Engine (24 Functions)
 **Mathematical Functions:**
 - SUM, AVERAGE, COUNT, MIN, MAX, PRODUCT
 
@@ -180,6 +180,9 @@ When testing, remember:
 
 **Logical Functions:**
 - IF, IFS, IFERROR, IFNA, AND, OR, NOT
+
+**Lookup Functions:**
+- VLOOKUP (exact and approximate match)
 
 **Formula Features:**
 - Cell references (A1, B2) and ranges (A1:B10)
@@ -254,7 +257,7 @@ When testing, remember:
 ### Phase 5: Advanced Formulas
 - Date/Time functions (NOW, TODAY, DATE, DATEVALUE, etc.)
 - Text functions (CONCATENATE, LEFT, RIGHT, MID, LEN, TRIM, etc.)
-- Lookup functions (VLOOKUP, HLOOKUP, INDEX, MATCH, etc.)
+- Additional lookup functions (HLOOKUP, INDEX, MATCH, XLOOKUP, etc.)
 - Financial functions (NPV, IRR, PMT, FV, PV, etc.)
 
 ### Phase 6: Collaboration

@@ -29,10 +29,11 @@
 - ✅ **Undo/Redo** - Full history tracking with Ctrl+Z and Ctrl+Y (up to 100 actions)
 - ✅ **Copy/Paste** - Standard clipboard operations with TSV format support
 
-### Formula Engine (23 Functions)
+### Formula Engine (24 Functions)
 - **Mathematical**: SUM, AVERAGE, COUNT, MIN, MAX, PRODUCT
 - **Statistical**: COUNTA, COUNTBLANK, MEDIAN, MODE, STDEV, VAR, CORREL, PERCENTILE, QUARTILE, RANK
 - **Logical**: IF, IFS, IFERROR, IFNA, AND, OR, NOT
+- **Lookup**: VLOOKUP (exact and approximate match)
 - **Features**: Cell references (A1, B2), ranges (A1:B10), autocomplete, parameter hints, circular reference detection
 
 ### Excel-like Ribbon Interface

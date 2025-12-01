@@ -73,6 +73,10 @@ export class FormulaService {
       } else if (upperExpr.startsWith('NOT(')) {
         return this.evaluateNot(expression, cells, currentRow, currentCol) ? 1 : 0;
       }
+      // Lookup Functions
+      else if (upperExpr.startsWith('VLOOKUP(')) {
+        return this.evaluateVlookup(expression, cells, currentRow, currentCol);
+      }
 
       // Replace cell references with their values
       const evaluatedExpression = this.replaceCellReferences(
@@ -693,5 +697,173 @@ export class FormulaService {
     } catch {
       return '#ERROR!';
     }
+  }
+
+  // ========== LOOKUP FUNCTIONS ==========
+
+  /**
+   * Evaluates VLOOKUP function - vertical lookup
+   * VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])
+   */
+  private evaluateVlookup(expression: string, cells: Cell[][], currentRow: number, currentCol: number): string | number {
+    const args = this.extractMultipleArgs(expression);
+    if (args.length < 3) return '#ERROR!';
+
+    // Parse arguments
+    const lookupValue = this.evaluateExpression(args[0], cells, currentRow, currentCol);
+    const tableRange = args[1].trim();
+    const colIndex = parseInt(args[2]);
+    const rangeLookup = args.length > 3 ? this.parseBooleanArg(args[3]) : true;
+
+    // Validate column index
+    if (isNaN(colIndex) || colIndex < 1) {
+      return '#ERROR!';
+    }
+
+    // Get table as 2D array
+    const tableData = this.getRangeAs2DArray(tableRange, cells);
+    if (tableData.length === 0 || tableData[0].length < colIndex) {
+      return '#N/A';
+    }
+
+    // Perform lookup
+    if (rangeLookup) {
+      return this.vlookupApproximate(lookupValue, tableData, colIndex);
+    } else {
+      return this.vlookupExact(lookupValue, tableData, colIndex);
+    }
+  }
+
+  /**
+   * Performs exact match VLOOKUP
+   */
+  private vlookupExact(lookupValue: string | number, tableData: (string | number)[][], colIndex: number): string | number {
+    for (let i = 0; i < tableData.length; i++) {
+      const firstColValue = tableData[i][0];
+
+      // Compare values (handle both string and number comparison)
+      if (this.compareValues(firstColValue, lookupValue) === 0) {
+        return tableData[i][colIndex - 1]; // colIndex is 1-based
+      }
+    }
+
+    return '#N/A';
+  }
+
+  /**
+   * Performs approximate match VLOOKUP (assumes first column is sorted ascending)
+   */
+  private vlookupApproximate(lookupValue: string | number, tableData: (string | number)[][], colIndex: number): string | number {
+    let lastMatchIndex = -1;
+
+    // Find the largest value that is less than or equal to lookup_value
+    for (let i = 0; i < tableData.length; i++) {
+      const firstColValue = tableData[i][0];
+      const comparison = this.compareValues(firstColValue, lookupValue);
+
+      if (comparison === 0) {
+        // Exact match found
+        return tableData[i][colIndex - 1];
+      } else if (comparison < 0) {
+        // Current value is less than lookup value
+        lastMatchIndex = i;
+      } else {
+        // Current value is greater than lookup value, stop searching
+        break;
+      }
+    }
+
+    if (lastMatchIndex >= 0) {
+      return tableData[lastMatchIndex][colIndex - 1];
+    }
+
+    return '#N/A';
+  }
+
+  /**
+   * Compares two values for VLOOKUP matching
+   * Returns: -1 if a < b, 0 if a === b, 1 if a > b
+   */
+  private compareValues(a: string | number, b: string | number): number {
+    // Convert both to same type for comparison
+    const aNum = typeof a === 'number' ? a : parseFloat(String(a));
+    const bNum = typeof b === 'number' ? b : parseFloat(String(b));
+
+    // If both are valid numbers, compare numerically
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      if (aNum < bNum) return -1;
+      if (aNum > bNum) return 1;
+      return 0;
+    }
+
+    // Otherwise compare as strings
+    const aStr = String(a).toLowerCase();
+    const bStr = String(b).toLowerCase();
+
+    if (aStr < bStr) return -1;
+    if (aStr > bStr) return 1;
+    return 0;
+  }
+
+  /**
+   * Gets a range as a 2D array of values
+   */
+  private getRangeAs2DArray(range: string, cells: Cell[][]): (string | number)[][] {
+    const result: (string | number)[][] = [];
+
+    try {
+      const [start, end] = range.split(':');
+      const startAddr = a1ToCellAddress(start.trim());
+      const endAddr = a1ToCellAddress(end.trim());
+
+      const minRow = Math.min(startAddr.row, endAddr.row);
+      const maxRow = Math.max(startAddr.row, endAddr.row);
+      const minCol = Math.min(startAddr.col, endAddr.col);
+      const maxCol = Math.max(startAddr.col, endAddr.col);
+
+      for (let row = minRow; row <= maxRow; row++) {
+        const rowData: (string | number)[] = [];
+        for (let col = minCol; col <= maxCol; col++) {
+          const cell = cells[row]?.[col];
+          const value = this.getCellValue(cell, cells);
+          rowData.push(value);
+        }
+        result.push(rowData);
+      }
+    } catch {
+      // Invalid range
+    }
+
+    return result;
+  }
+
+  /**
+   * Gets the actual value from a cell (evaluates formulas)
+   */
+  private getCellValue(cell: Cell | undefined, cells: Cell[][]): string | number {
+    if (!cell || cell.value === null || cell.value === undefined) {
+      return '';
+    }
+
+    // If it's a formula, evaluate it
+    if (typeof cell.value === 'string' && cell.value.startsWith('=')) {
+      const result = this.evaluateFormula(cell.value, cells, cell.row, cell.col);
+      return result;
+    }
+
+    return cell.value;
+  }
+
+  /**
+   * Parses a boolean argument (TRUE/FALSE, 1/0)
+   */
+  private parseBooleanArg(arg: string): boolean {
+    const upper = arg.trim().toUpperCase();
+    if (upper === 'TRUE' || upper === '1') return true;
+    if (upper === 'FALSE' || upper === '0') return false;
+
+    // Try to parse as number
+    const num = parseFloat(arg);
+    return !isNaN(num) && num !== 0;
   }
 }

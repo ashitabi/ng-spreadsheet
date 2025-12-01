@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-12-01
+
+### Added
+- **VLOOKUP function**: Vertical lookup function with exact and approximate match support
+  - Syntax: `VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`
+  - Supports both exact match (range_lookup = FALSE/0) and approximate match (range_lookup = TRUE/1)
+  - Handles numeric and string comparisons
+  - Evaluates formulas within lookup tables
+  - Added to formula autocomplete suggestions
+
 ## [0.1.0] - 2025-11-21
 
 ### Added
@@ -68,6 +78,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Paste Special (values, formats, formulas) - coming soon
 - Excel (.xlsx) import/export - planned for future release
 - Multiple sheet tabs - planned for future release
-- Advanced formulas (VLOOKUP, HLOOKUP, INDEX, MATCH) - planned for future release
+- Additional lookup formulas (HLOOKUP, INDEX, MATCH) - planned for future release
 
 [0.1.0]: https://github.com/ashitabi/ng-spreadsheet/releases/tag/v0.1.0
